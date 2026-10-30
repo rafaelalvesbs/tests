@@ -64,8 +64,6 @@ window.Router.register('homeconcurseiro', async () => {
     const userInfo = window.usuarioLogado || {};
     const nomeCompleto = userInfo.nome || "Concurseiro";
     const primeiroNome = nomeCompleto.split(' ')[0];
-    const generoFeminino = primeiroNome.toLowerCase().endsWith('a');
-    const saudacao = generoFeminino ? 'Bem-vinda' : 'Bem-vindo';
 
     window.showAlertAluno = (titulo, mensagem, tipo = 'info') => {
         const modal = document.getElementById('modal-alert-aluno');
@@ -125,6 +123,11 @@ window.Router.register('homeconcurseiro', async () => {
                 if (cargoSalvoLocal) {
                     cargoSelecionado = cargoSalvoLocal;
                     window.filtrarDisciplinasPeloCargo();
+                    const badgeCargo = document.getElementById('cargo-atual-badge');
+                    if (badgeCargo && cargosDisponiveis[cargoSelecionado]) {
+                        badgeCargo.innerHTML = `<i class="fa-solid fa-user-tie" style="margin-right: 8px;"></i>Cargo: ${cargosDisponiveis[cargoSelecionado]}`;
+                        badgeCargo.style.display = 'inline-block';
+                    }
                 }
                 return;
             }
@@ -155,6 +158,11 @@ window.Router.register('homeconcurseiro', async () => {
                     cargoSelecionado = docCargoSalvo.data().cargoId;
                     localStorage.setItem(cacheCargoKey, cargoSelecionado);
                     window.filtrarDisciplinasPeloCargo();
+                    const badgeCargo = document.getElementById('cargo-atual-badge');
+                    if (badgeCargo && cargosDisponiveis[cargoSelecionado]) {
+                        badgeCargo.innerHTML = `<i class="fa-solid fa-user-tie" style="margin-right: 8px;"></i>Cargo: ${cargosDisponiveis[cargoSelecionado]}`;
+                        badgeCargo.style.display = 'inline-block';
+                    }
                 }
             } else {
                 document.getElementById('estado-vazio-concurso').style.display = 'block';
@@ -475,7 +483,9 @@ window.Router.register('homeconcurseiro', async () => {
         .hc-avatar { width: 45px; height: 45px; border-radius: 50%; background: #0f172a; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; }
 
         /* VIEW 1: BOAS VINDAS */
-        .welcome-box { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 24px; padding: 40px 30px; color: white; text-align: center; box-shadow: 0 10px 25px rgba(15,23,42,0.2); }
+        #view-boas-vindas[style*="display: block"] { display: flex !important; }
+        #view-boas-vindas { flex-direction: column; justify-content: center; min-height: 80vh; }
+        .welcome-box { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 24px; padding: 40px 30px; color: white; text-align: center; box-shadow: 0 10px 25px rgba(15,23,42,0.2); margin: 0 auto; width: 100%; }
         
        @media (min-width: 769px) {
             #view-boas-vindas {
@@ -592,12 +602,12 @@ window.Router.register('homeconcurseiro', async () => {
         </div>
 
         <!-- VIEW 1: BOAS VINDAS -->
-        <div id="view-boas-vindas" class="view-concurseiro" style="display: block;">
-            
+        <div id="view-boas-vindas" class="view-concurseiro" style="display: flex;">
             <div class="welcome-box">
                 <div class="w-icon"><i class="fa-solid fa-graduation-cap"></i></div>
                 <div class="w-title">Olá, ${primeiroNome}!</div>
-                <div class="w-subtitle">${saudacao} à sua área de estudos. Prepare-se para detonar nas questões.</div>
+                <div class="w-subtitle">Bons estudos hoje! Prepare-se para detonar nas questões.</div>
+                <div id="cargo-atual-badge" style="display: none; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 25px; font-size: 14px; font-weight: 700; color: #38bdf8; border: 1px solid rgba(56,189,248,0.2);"></div>
                 <button class="btn-hc-primario" onclick="window.iniciarJornada()">INICIAR ESTUDOS <i class="fa-solid fa-arrow-right" style="margin-left: 8px;"></i></button>
             </div>
         </div>
