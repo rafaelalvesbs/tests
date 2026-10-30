@@ -67,6 +67,26 @@ window.Router.register('homeconcurseiro', async () => {
     const generoFeminino = primeiroNome.toLowerCase().endsWith('a');
     const saudacao = generoFeminino ? 'Bem-vinda' : 'Bem-vindo';
 
+    window.showAlertAluno = (titulo, mensagem, tipo = 'info') => {
+        const modal = document.getElementById('modal-alert-aluno');
+        document.getElementById('alert-title-aluno').innerText = titulo;
+        document.getElementById('alert-msg-aluno').innerHTML = mensagem;
+        document.getElementById('alert-icon-aluno').innerHTML = tipo === 'error' ? '<i class="fa-solid fa-circle-xmark" style="color:#ef4444; font-size:40px;"></i>' : '<i class="fa-solid fa-circle-check" style="color:#10b981; font-size:40px;"></i>';
+        modal.style.display = 'flex';
+    };
+    window.closeAlertAluno = () => { document.getElementById('modal-alert-aluno').style.display = 'none'; };
+
+    window.showConfirmAluno = (titulo, mensagem, onConfirm) => {
+        const modal = document.getElementById('modal-confirm-aluno');
+        document.getElementById('confirm-title-aluno').innerText = titulo;
+        document.getElementById('confirm-msg-aluno').innerText = mensagem;
+        modal.style.display = 'flex';
+        window.pendingConfirmActionAluno = async () => { 
+            await onConfirm(); 
+            modal.style.display = 'none'; 
+        };
+    };
+
     window.filtrarDisciplinasPeloCargo = () => {
         const setDisciplinas = new Set();
         todasAtividadesConcurso.forEach(atv => {
@@ -86,9 +106,33 @@ window.Router.register('homeconcurseiro', async () => {
                 return;
             }
 
+            const cacheAtividadesKey = `p4f_cache_ativ_${idConcurso}`;
+            const cacheConcursoKey = `p4f_cache_conc_${idConcurso}`;
+            const cacheCargoKey = `p4f_cache_cargo_${userAtual.uid}`;
+
+            const concSalvoLocal = localStorage.getItem(cacheConcursoKey);
+            const ativSalvaLocal = localStorage.getItem(cacheAtividadesKey);
+            const cargoSalvoLocal = localStorage.getItem(cacheCargoKey);
+
+            if (concSalvoLocal && ativSalvaLocal) {
+                dadosConcurso = JSON.parse(concSalvoLocal);
+                todasAtividadesConcurso = JSON.parse(ativSalvaLocal);
+                todasAtividadesConcurso.forEach(atv => {
+                    if(atv.cargoId && atv.cargoNome) {
+                        cargosDisponiveis[atv.cargoId] = atv.cargoNome;
+                    }
+                });
+                if (cargoSalvoLocal) {
+                    cargoSelecionado = cargoSalvoLocal;
+                    window.filtrarDisciplinasPeloCargo();
+                }
+                return;
+            }
+
             const docConc = await getDoc(doc(db, "concursos", idConcurso));
             if (docConc.exists()) {
                 dadosConcurso = { id: docConc.id, ...docConc.data() };
+                localStorage.setItem(cacheConcursoKey, JSON.stringify(dadosConcurso));
                 
                 const qAtividades = query(collection(db, "atividades_concursos"), where("concursoId", "==", idConcurso));
                 const snapAtividades = await getDocs(qAtividades);
@@ -104,9 +148,12 @@ window.Router.register('homeconcurseiro', async () => {
                     }
                 });
 
+                localStorage.setItem(cacheAtividadesKey, JSON.stringify(todasAtividadesConcurso));
+
                 const docCargoSalvo = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_cargo_fixo`));
                 if (docCargoSalvo.exists()) {
                     cargoSelecionado = docCargoSalvo.data().cargoId;
+                    localStorage.setItem(cacheCargoKey, cargoSelecionado);
                     window.filtrarDisciplinasPeloCargo();
                 }
             } else {
@@ -156,17 +203,18 @@ window.Router.register('homeconcurseiro', async () => {
         window.irParaView('view-cargos');
     };
 
-    window.salvarCargoFixo = async (idCargo) => {
-        if(confirm("ATENÇÃO: Após escolher este cargo, você NÃO poderá mudar depois. Confirma a escolha?")) {
+   window.salvarCargoFixo = (idCargo) => {
+        window.showConfirmAluno("Confirmar Escolha?", "ATENÇÃO: Após escolher este cargo, você NÃO poderá mudar depois. Tem certeza?", async () => {
             try {
                 await setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_cargo_fixo`), { cargoId: idCargo, dataEscolha: Date.now() });
                 cargoSelecionado = idCargo;
+                localStorage.setItem(`p4f_cache_cargo_${userAtual.uid}`, idCargo);
                 window.filtrarDisciplinasPeloCargo();
                 window.abrirDisciplinas();
             } catch(e) {
-                alert("Ocorreu um erro ao salvar o cargo. Tente novamente.");
+                window.showAlertAluno("Erro", "Ocorreu um erro ao salvar o cargo. Tente novamente.", "error");
             }
-        }
+        });
     };
 
     window.abrirDisciplinas = () => {
@@ -206,13 +254,22 @@ window.Router.register('homeconcurseiro', async () => {
                 }
             });
 
-            // 2. Busca progresso do aluno nesta disciplina
-            const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplina}`));
-            if (docProgresso.exists()) {
-                progressoUsuario = docProgresso.data();
+            // 2. Busca progresso do aluno nesta disciplina com cache local
+            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplina}`;
+            const progressoSalvoLocal = localStorage.getItem(cacheProgKey);
+            
+            if (progressoSalvoLocal) {
+                progressoUsuario = JSON.parse(progressoSalvoLocal);
                 if(!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
             } else {
-                progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
+                const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplina}`));
+                if (docProgresso.exists()) {
+                    progressoUsuario = docProgresso.data();
+                    if(!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
+                } else {
+                    progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
+                }
+                localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
             }
 
             // 3. Filtra apenas as que não foram resolvidas
@@ -366,10 +423,13 @@ window.Router.register('homeconcurseiro', async () => {
 
         atualizarPlacarEstatisticas();
 
-        // Salva Progresso no Firebase em background
+        // Salva Progresso localmente e no Firebase em background
         try {
+            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`;
+            localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
+            
             const refDoc = doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`);
-            await setDoc(refDoc, progressoUsuario, { merge: true });
+            setDoc(refDoc, progressoUsuario, { merge: true });
         } catch(e) {}
 
         // Remove da fila
@@ -513,9 +573,16 @@ window.Router.register('homeconcurseiro', async () => {
         .loader-q { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 0; }
         .spinner-q { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid #0f172a; border-radius: 50%; animation: spinQ 0.8s linear infinite; margin-bottom: 15px; }
         @keyframes spinQ { to { transform: rotate(360deg); } }
+        
+        .modal-aluno { position:fixed; inset:0; background:rgba(15, 23, 42, 0.7); backdrop-filter:blur(4px); display:none; justify-content:center; align-items:center; z-index:9999; padding:20px; }
+        .modal-aluno-content { background:#fff; width:100%; max-width:400px; border-radius:24px; padding:30px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .btn-modal-aluno { background:#0f172a; color:#fff; border:none; padding:16px; width:100%; border-radius:14px; font-weight:800; font-size: 15px; cursor:pointer; margin-top:20px; transition: 0.2s; }
+        .btn-modal-aluno:hover { transform: translateY(-2px); }
     </style>
 
     <div class="hc-container">
+        <div id="modal-alert-aluno" class="modal-aluno"><div class="modal-aluno-content"><div id="alert-icon-aluno" style="margin-bottom:15px;"></div><h3 id="alert-title-aluno" style="color:#0f172a; margin-top:0; font-size: 22px; font-weight: 900;"></h3><div id="alert-msg-aluno" style="color:#64748b; margin-bottom:25px; line-height: 1.5;"></div><button class="btn-modal-aluno" onclick="window.closeAlertAluno()" style="margin-top:0;">OK, ENTENDI</button></div></div>
+        <div id="modal-confirm-aluno" class="modal-aluno"><div class="modal-aluno-content"><div style="font-size: 40px; color: #ef4444; margin-bottom: 15px;"><i class="fa-solid fa-triangle-exclamation"></i></div><h3 id="confirm-title-aluno" style="color:#0f172a; margin-top:0; font-size: 22px; font-weight: 900;"></h3><p id="confirm-msg-aluno" style="color:#64748b; margin-bottom:25px; line-height: 1.5; font-weight: 600;"></p><div style="display:flex; flex-direction: column; gap:12px;"><button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.pendingConfirmActionAluno()">SIM, CONFIRMAR ESCOLHA</button><button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="this.closest('.modal-aluno').style.display='none'">CANCELAR</button></div></div></div>
         
         <!-- ESTADO SEM CONCURSO -->
         <div id="estado-vazio-concurso" style="display:none; padding: 40px 20px; text-align:center;">
