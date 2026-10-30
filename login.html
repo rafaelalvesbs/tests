@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Concurseiros</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        body {
+            display: flex;
+            height: 100vh;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+
+        /* Lado Esquerdo - Imagem e Logo */
+        .left-side {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%), 
+                        url('https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=1470');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+
+        .logo-container { z-index: 10; text-align: center; }
+        .logo-container h1 {
+            color: white; 
+            font-size: clamp(2.5rem, 5vw, 4rem); 
+            font-weight: 800; 
+            text-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            letter-spacing: -1px;
+        }
+        .logo-container p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 10px;
+        }
+
+        /* Lado Direito - Formulário */
+        .right-side {
+            flex: 0.5;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: clamp(20px, 8vw, 60px);
+            color: #1a202c;
+            box-shadow: -15px 0 40px rgba(0,0,0,0.1);
+            z-index: 20;
+            overflow-y: auto;
+        }
+
+        .welcome-text {
+            text-align: center;
+            margin-bottom: 30px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .welcome-text h2 {
+            font-size: clamp(1.8rem, 3vw, 2.2rem);
+            color: #0f172a;
+            margin-bottom: 12px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        .welcome-text p { 
+            font-size: 1rem; 
+            color: #64748b; 
+            margin-bottom: 10px;
+        }
+
+        .form-container {
+            display: grid;
+            grid-template-columns: 1fr; 
+            gap: 15px;
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        .input-group label {
+            display: block;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f8fafc;
+            font-size: 1rem;
+            transition: 0.3s;
+            outline: none;
+        }
+
+        .password-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .toggle-password-icon {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 1.1rem;
+            z-index: 10;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            border-color: #0f172a;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.1);
+        }
+
+        .input-group input.input-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important;
+        }
+
+        .options-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .lgpd-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .btn-acessar {
+            width: 100%;
+            padding: 16px;
+            background: #0f172a;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+            transition: 0.3s;
+        }
+
+        .btn-acessar:hover { transform: translateY(-2px); filter: brightness(1.2); }
+
+        .toggle-auth {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #64748b;
+            cursor: pointer;
+        }
+        .toggle-auth b { color: #0f172a; }
+
+        .registro-only { display: none; }
+
+        @media (max-width: 1024px) {
+            body {
+                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                overflow-y: auto;
+            }
+
+            .left-side { display: none; }
+
+            .right-side {
+                flex: none;
+                width: 100%;
+                max-width: 400px;
+                background: white;
+                border-radius: 24px;
+                padding: 40px 24px;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+                margin: 40px auto;
+                position: relative;
+            }
+
+            .form-container { max-width: 100%; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 480px) {
+            .right-side {
+                max-width: 95%;
+                padding: 30px 20px;
+                margin: 20px auto;
+            }
+            .welcome-text h2 { font-size: 1.6rem; }
+            .options-row { 
+                flex-direction: column; 
+                gap: 12px; 
+                align-items: flex-start; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+  <div class="left-side">
+        <div class="logo-container">
+            <h1>Concurseiros</h1>
+            <p>Sua preparação focada rumo à aprovação</p>
+        </div>
+    </div>
+
+    <div class="right-side">
+        <div class="welcome-text">
+            <h2 id="auth-title">Bem-vindo!</h2>
+            <p id="auth-desc">Acesse sua conta para continuar.</p>
+        </div>
+
+        <div class="form-container">
+            <div class="input-group registro-only" id="group-nome">
+                <label>Nome Completo</label>
+                <input type="text" id="nome" placeholder="Seu nome" autocomplete="off">
+            </div>
+
+            <div class="input-group" id="group-email">
+                <label>E-mail</label>
+                <input type="email" id="email" placeholder="seu@email.com" autocomplete="off">
+            </div>
+
+            <div class="input-group registro-only" id="group-codigo-acesso">
+                <label>Código de Acesso</label>
+                <input type="text" id="codigoAcesso" placeholder="Ex: ALU-123456" autocomplete="off" style="text-transform: uppercase;">
+            </div>
+
+            <div class="input-group" id="group-senha">
+                <label>Senha Pessoal</label>
+                <div class="password-container">
+                    <input type="password" id="password" placeholder="************" autocomplete="off">
+                    <i class="fa-regular fa-eye toggle-password-icon" id="togglePassword"></i>
+                </div>
+            </div>
+
+            <div class="options-row" id="group-options">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" style="accent-color: #0f172a;" autocomplete="off"> Lembrar de mim
+                </label>
+                <a onclick="toggleRecuperar()" style="color: #0f172a; text-decoration: none; font-weight: 600; cursor: pointer;">Esqueci a senha</a>
+            </div>
+
+            <div class="lgpd-row registro-only" id="group-lgpd">
+                <input type="checkbox" id="lgpd-consent" autocomplete="off">
+                <label for="lgpd-consent">Concordo com os <a href="javascript:void(0)" onclick="abrirLGPD(event)" style="color: #0f172a; font-weight: 600;">Termos de Privacidade</a> (LGPD).</label>
+            </div>
+
+            <div id="aviso-spam-email" style="display: none; background: #fffbeb; border: 1px dashed #f59e0b; color: #b45309; padding: 12px; border-radius: 12px; font-size: 0.85rem; font-weight: 700; text-align: center; margin-bottom: 15px;">
+                <i class="fa-solid fa-triangle-exclamation" style="margin-right: 5px;"></i> Verifique o SPAM caso o e-mail não chegue na caixa principal!
+            </div>
+
+            <button class="btn-acessar" onclick="executarAuth()" id="btn-auth" autocomplete="off">Entrar</button>
+
+            <div class="toggle-auth" onclick="toggleModo()" id="toggle-text">
+                Não possui uma conta? <b>Cadastre-se</b>
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCrz2G3qQXkq5CqTB64BCwnFw-dO9dNA14",
+        authDomain: "concurseiros-24d24.firebaseapp.com",
+        projectId: "concurseiros-24d24",
+        storageBucket: "concurseiros-24d24.firebasestorage.app",
+        messagingSenderId: "106430651443",
+        appId: "1:106430651443:web:b2868a280325c703a9d746"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    window.auth = getAuth(app);
+    window.db = getFirestore(app);
+
+    let modo = 'login'; 
+
+    window.toggleModo = () => {
+        modo = (modo === 'login') ? 'registro' : 'login';
+        atualizarUI();
+    };
+
+    window.toggleRecuperar = () => {
+        modo = 'recuperar';
+        atualizarUI();
+    };
+
+    function atualizarUI() {
+        const registroFields = document.querySelectorAll('.registro-only');
+        const optionsRow = document.getElementById('group-options');
+        const groupSenha = document.getElementById('group-senha');
+        const title = document.getElementById('auth-title');
+        const btn = document.getElementById('btn-auth');
+        const toggle = document.getElementById('toggle-text');
+        const avisoSpam = document.getElementById('aviso-spam-email');
+
+        registroFields.forEach(f => f.style.display = 'none');
+        if (avisoSpam) avisoSpam.style.display = 'none';
+        
+        if (modo === 'login') {
+            title.innerText = 'Bem-vindo!';
+            btn.innerText = 'Entrar';
+            optionsRow.style.display = 'flex';
+            groupSenha.style.display = 'block';
+            toggle.innerHTML = 'Não possui uma conta? <b>Cadastre-se</b>';
+        } else if (modo === 'registro') {
+            registroFields.forEach(f => f.style.display = 'block');
+            document.getElementById('group-lgpd').style.display = 'flex';
+            title.innerText = 'Crie sua Conta';
+            btn.innerText = 'Registrar';
+            optionsRow.style.display = 'none';
+            groupSenha.style.display = 'block';
+            toggle.innerHTML = 'Já tem conta? <b>Faça Login</b>';
+        } else {
+            title.innerText = 'Recuperar Senha';
+            btn.innerText = 'Enviar Link';
+            optionsRow.style.display = 'none';
+            groupSenha.style.display = 'none';
+            toggle.innerHTML = 'Voltar ao <b>Login</b>';
+            if (avisoSpam) avisoSpam.style.display = 'block';
+        }
+    }
+
+    window.executarAuth = async () => {
+        const emailRaw = document.getElementById('email').value;
+        const email = emailRaw ? emailRaw.trim().toLowerCase() : "";
+        const pass = document.getElementById('password').value;
+        const nome = document.getElementById('nome').value;
+        const lgpd = document.getElementById('lgpd-consent').checked;
+
+        if (!email) return alert("E-mail obrigatório.");
+
+        const btnAuth = document.getElementById('btn-auth');
+        const originalBtnText = btnAuth.innerText;
+        btnAuth.disabled = true;
+        btnAuth.innerText = "Processando...";
+        btnAuth.style.opacity = "0.7";
+        btnAuth.style.cursor = "not-allowed";
+
+        try {
+            if (modo === 'login') {
+                const cred = await signInWithEmailAndPassword(auth, email, pass);
+                const userDoc = await getDoc(doc(db, "usuarios", cred.user.uid));
+                
+                let meuAparelhoId = localStorage.getItem('p4f_aparelho_id');
+                if (!meuAparelhoId) {
+                    meuAparelhoId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+                    localStorage.setItem('p4f_aparelho_id', meuAparelhoId);
+                }
+
+                if (userDoc.exists() && userDoc.data().perfil === 'Concurseiro') {
+                    const dbSession = userDoc.data().sessaoAtiva;
+                    if (dbSession && dbSession !== "" && dbSession !== meuAparelhoId) {
+                        await signOut(auth);
+                        alert("⚠️ Sua conta já está logada em outro aparelho ou você usou um aparelho diferente para se cadastrar.\nContate o suporte para liberar o acesso neste dispositivo.");
+                        btnAuth.disabled = false;
+                        btnAuth.innerText = originalBtnText;
+                        btnAuth.style.opacity = "1";
+                        btnAuth.style.cursor = "pointer";
+                        return;
+                    }
+                    await updateDoc(doc(db, "usuarios", cred.user.uid), { sessaoAtiva: meuAparelhoId });
+                }
+
+                window.location.href = 'index.html';
+            } else if (modo === 'registro') {
+                if (!lgpd) return alert("Aceite os termos LGPD.");
+                if (!nome) return alert("Preencha o nome.");
+
+                let concursoIdAtribuido = "";
+                let docCodigoBd = null;
+                
+                const ehMaster = (email === "rafael.alves1988@live.com" || email === "admin@concurseiros.com");
+                let perfil = ehMaster ? 'Master' : 'Concurseiro';
+
+                if (perfil === 'Concurseiro') {
+                    const codInput = document.getElementById('codigoAcesso').value.trim().toUpperCase();
+                    if (!codInput) return alert("O código de acesso é obrigatório.");
+                    
+                    const qCode = query(collection(db, "codigos_acesso"), where("codigo", "==", codInput), where("status", "==", "pendente"));
+                    const snapCode = await getDocs(qCode);
+                    if (snapCode.empty) return alert("Código de acesso inválido ou já foi utilizado.");
+                    
+                    docCodigoBd = snapCode.docs[0];
+                    concursoIdAtribuido = docCodigoBd.data().concursoId;
+                }
+
+                const userCred = await createUserWithEmailAndPassword(auth, email, pass);
+                const novoUid = userCred.user.uid;
+
+                let meuAparelhoId = localStorage.getItem('p4f_aparelho_id');
+                if (!meuAparelhoId) {
+                    meuAparelhoId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+                    localStorage.setItem('p4f_aparelho_id', meuAparelhoId);
+                }
+
+                const dadosUsuario = {
+                    uid: novoUid,
+                    nome: nome.trim(),
+                    email: email,
+                    perfil: perfil,
+                    status: 'aprovado',
+                    concursoId: concursoIdAtribuido,
+                    sessaoAtiva: meuAparelhoId,
+                    dataCriacao: serverTimestamp() 
+                };
+
+                await setDoc(doc(db, "usuarios", novoUid), dadosUsuario);
+
+                if (docCodigoBd) {
+                    await updateDoc(doc(db, "codigos_acesso", docCodigoBd.id), {
+                        status: "ativo",
+                        alunoId: novoUid,
+                        alunoNome: nome.trim(),
+                        dataUso: serverTimestamp()
+                    });
+                }
+
+                window.location.href = 'index.html';
+            } else {
+                await sendPasswordResetEmail(auth, email);
+                alert("E-mail de recuperação enviado!");
+                modo = 'login';
+                atualizarUI();
+            }
+        } catch (e) {
+            let mensagem = "Ocorreu um erro inesperado.";
+            switch(e.code) {
+                case 'auth/invalid-credential': mensagem = "E-mail ou senha incorretos."; break;
+                case 'auth/email-already-in-use': mensagem = "Este e-mail já está cadastrado."; break;
+                case 'auth/weak-password': mensagem = "A senha deve ter pelo menos 6 caracteres."; break;
+                case 'auth/invalid-email': mensagem = "O formato do e-mail é inválido."; break;
+                default: mensagem = "Erro: " + e.message;
+            }
+            alert(mensagem);
+        } finally {
+            btnAuth.disabled = false;
+            btnAuth.innerText = originalBtnText;
+            btnAuth.style.opacity = "1";
+            btnAuth.style.cursor = "pointer";
+        }
+    };
+
+    atualizarUI();
+
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+
+    if (togglePassword) {
+        togglePassword.addEventListener('click', () => {
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            togglePassword.classList.toggle('fa-eye');
+            togglePassword.classList.toggle('fa-eye-slash');
+        });
+    }
+
+    window.abrirLGPD = (event) => { if(event) event.preventDefault(); document.getElementById('modal-lgpd').style.display = 'flex'; };
+    window.fecharLGPD = () => { document.getElementById('modal-lgpd').style.display = 'none'; };
+</script>
+
+<div id="modal-lgpd" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center;">
+    <div style="background: white; width: 90%; max-width: 600px; max-height: 80vh; border-radius: 20px; padding: 30px; position: relative; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
+        <h3 style="color: #0f172a; margin-bottom: 20px; font-weight: 800;">Termos de Privacidade e LGPD</h3>
+        <div style="color: #64748b; font-size: 0.95rem; line-height: 1.6; text-align: justify;">
+            <p>A plataforma Concurseiros preza pela segurança dos seus dados. Ao utilizar nossa plataforma, você concorda com a coleta de dados educacionais para acompanhamento e desempenho nos estudos.</p>
+        </div>
+        <button onclick="fecharLGPD()" style="margin-top: 25px; width: 100%; padding: 12px; background: #0f172a; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer;">Entendi e desejo continuar</button>
+    </div>
+</div>
+</body>
+</html>
