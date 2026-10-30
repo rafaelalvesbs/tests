@@ -25,15 +25,35 @@ window.Router.register('homeconcurseiro', async () => {
         if (somMutado) return;
         try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
             const gain = ctx.createGain();
-            osc.connect(gain);
             gain.connect(ctx.destination);
+            
+            if (tipo === 'pagina') {
+                const bufferSize = ctx.sampleRate * 0.15;
+                const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = ctx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(800, ctx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.15);
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                noise.start(); noise.stop(ctx.currentTime + 0.15);
+                return;
+            }
+
+            const osc = ctx.createOscillator();
+            osc.connect(gain);
             
             if (tipo === 'acerto') {
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, ctx.currentTime); // Dó
-                osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // Mi
+                osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+                osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
                 gain.gain.setValueAtTime(0.1, ctx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.5);
                 osc.start(); osc.stop(ctx.currentTime + 0.5);
@@ -104,38 +124,12 @@ window.Router.register('homeconcurseiro', async () => {
                 return;
             }
 
-            const cacheAtividadesKey = `p4f_cache_ativ_${idConcurso}`;
-            const cacheConcursoKey = `p4f_cache_conc_${idConcurso}`;
             const cacheCargoKey = `p4f_cache_cargo_${userAtual.uid}`;
-
-            const concSalvoLocal = localStorage.getItem(cacheConcursoKey);
-            const ativSalvaLocal = localStorage.getItem(cacheAtividadesKey);
             const cargoSalvoLocal = localStorage.getItem(cacheCargoKey);
-
-            if (concSalvoLocal && ativSalvaLocal) {
-                dadosConcurso = JSON.parse(concSalvoLocal);
-                todasAtividadesConcurso = JSON.parse(ativSalvaLocal);
-                todasAtividadesConcurso.forEach(atv => {
-                    if(atv.cargoId && atv.cargoNome) {
-                        cargosDisponiveis[atv.cargoId] = atv.cargoNome;
-                    }
-                });
-                if (cargoSalvoLocal) {
-                    cargoSelecionado = cargoSalvoLocal;
-                    window.filtrarDisciplinasPeloCargo();
-                    const badgeCargo = document.getElementById('cargo-atual-badge');
-                    if (badgeCargo && cargosDisponiveis[cargoSelecionado]) {
-                        badgeCargo.innerHTML = `<i class="fa-solid fa-user-tie" style="margin-right: 8px;"></i>Cargo: ${cargosDisponiveis[cargoSelecionado]}`;
-                        badgeCargo.style.display = 'inline-block';
-                    }
-                }
-                return;
-            }
 
             const docConc = await getDoc(doc(db, "concursos", idConcurso));
             if (docConc.exists()) {
                 dadosConcurso = { id: docConc.id, ...docConc.data() };
-                localStorage.setItem(cacheConcursoKey, JSON.stringify(dadosConcurso));
                 
                 const qAtividades = query(collection(db, "atividades_concursos"), where("concursoId", "==", idConcurso));
                 const snapAtividades = await getDocs(qAtividades);
@@ -151,12 +145,15 @@ window.Router.register('homeconcurseiro', async () => {
                     }
                 });
 
-                localStorage.setItem(cacheAtividadesKey, JSON.stringify(todasAtividadesConcurso));
-
                 const docCargoSalvo = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_cargo_fixo`));
                 if (docCargoSalvo.exists()) {
                     cargoSelecionado = docCargoSalvo.data().cargoId;
                     localStorage.setItem(cacheCargoKey, cargoSelecionado);
+                } else if (cargoSalvoLocal) {
+                    cargoSelecionado = cargoSalvoLocal;
+                }
+
+                if (cargoSelecionado) {
                     window.filtrarDisciplinasPeloCargo();
                     const badgeCargo = document.getElementById('cargo-atual-badge');
                     if (badgeCargo && cargosDisponiveis[cargoSelecionado]) {
@@ -454,7 +451,18 @@ window.Router.register('homeconcurseiro', async () => {
     let touchendX = 0;
     const checkSwipe = () => {
         if (touchendX < touchstartX - 50 && questaoRespondidaAgora) {
-            window.avancarPosResposta();
+            const container = document.getElementById('render-questao-aqui');
+            if (window.innerWidth < 769 && container) {
+                tocarSom('pagina');
+                container.style.animation = 'pageSwipeOut 0.35s forwards ease-in';
+                setTimeout(() => {
+                    window.avancarPosResposta();
+                    container.style.animation = 'pageSwipeIn 0.35s forwards ease-out';
+                    setTimeout(() => { container.style.animation = ''; }, 350);
+                }, 300);
+            } else {
+                window.avancarPosResposta();
+            }
         }
     };
 
@@ -474,7 +482,8 @@ window.Router.register('homeconcurseiro', async () => {
 
     return `
     <style>
-        .hc-container { width: 100%; min-height: 100%; font-family: 'Plus Jakarta Sans', sans-serif; background: #f4f7f6; padding-bottom: 50px; }
+        .hc-container { width: 100%; min-height: 100%; font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f9ff; padding-bottom: 50px; }
+        @media (min-width: 769px) { .hc-container { background: #f4f7f6; } }
         .view-concurseiro { display: none; padding: 20px; max-width: 800px; margin: 0 auto; }
         
         /* HEADER TOPO */
@@ -583,6 +592,8 @@ window.Router.register('homeconcurseiro', async () => {
         .loader-q { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 0; }
         .spinner-q { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid #0f172a; border-radius: 50%; animation: spinQ 0.8s linear infinite; margin-bottom: 15px; }
         @keyframes spinQ { to { transform: rotate(360deg); } }
+        @keyframes pageSwipeOut { 0% { transform: translateX(0) scale(1) rotateY(0); opacity: 1; } 100% { transform: translateX(-100%) scale(0.95) rotateY(-20deg); opacity: 0.3; } }
+        @keyframes pageSwipeIn { 0% { transform: translateX(100%) scale(0.95) rotateY(20deg); opacity: 0.3; } 100% { transform: translateX(0) scale(1) rotateY(0); opacity: 1; } }
         
         .modal-aluno { position:fixed; inset:0; background:rgba(15, 23, 42, 0.7); backdrop-filter:blur(4px); display:none; justify-content:center; align-items:center; z-index:9999; padding:20px; }
         .modal-aluno-content { background:#fff; width:100%; max-width:400px; border-radius:24px; padding:30px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
