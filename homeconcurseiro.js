@@ -296,6 +296,143 @@ window.Router.register('homeconcurseiro', async () => {
         }
     };
 
+    window.aplicarFiltroQuestoes = (tipoFiltro) => {
+        window.irParaView('view-disciplinas');
+        setTimeout(() => {
+            if (tipoFiltro === 'misturado') {
+                window.abrirTodasQuestoesMisturadas();
+            } else if (tipoFiltro === 'assunto') {
+                window.abrirModalFiltroAssunto();
+            }
+        }, 100);
+    };
+
+    window.abrirTodasQuestoesMisturadas = async () => {
+        disciplinaSelecionada = "MISTURADO";
+        document.getElementById('loader-questoes').style.display = 'flex';
+        window.irParaView('view-questoes');
+
+        try {
+            bateriaQuestoes = [];
+            todasAtividadesConcurso.forEach(data => {
+                if (data.cargoId === cargoSelecionado && data.questoes) {
+                    data.questoes.forEach((qItem, idx) => {
+                        bateriaQuestoes.push({
+                            idQ: `${data.idOriginal}_${idx}`,
+                            ...qItem
+                        });
+                    });
+                }
+            });
+
+            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_misturado`;
+            const progressoSalvoLocal = localStorage.getItem(cacheProgKey);
+            
+            if (progressoSalvoLocal) {
+                progressoUsuario = JSON.parse(progressoSalvoLocal);
+                if(!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
+            } else {
+                const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_misturado`));
+                if (docProgresso.exists()) {
+                    progressoUsuario = docProgresso.data();
+                    if(!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
+                } else {
+                    progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
+                }
+                localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
+            }
+
+            questoesPendentes = bateriaQuestoes.filter(q => !progressoUsuario.resolvidas[q.idQ]);
+            document.getElementById('loader-questoes').style.display = 'none';
+
+            if (questoesPendentes.length === 0) {
+                document.getElementById('fim-disciplina').style.display = 'flex';
+                document.getElementById('area-resolucao').style.display = 'none';
+            } else {
+                questoesPendentes = questoesPendentes.sort(() => Math.random() - 0.5);
+                carregarProximaQuestao();
+                document.getElementById('q-concurso-nome').innerText = "TODAS MISTURADAS";
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    window.abrirModalFiltroAssunto = () => {
+        const modal = document.getElementById('modal-filtro-assunto');
+        const selectAssunto = document.getElementById('select-filtro-assunto');
+        selectAssunto.innerHTML = '<option value="" disabled selected>Selecione um assunto...</option>';
+
+        let assuntosEncontrados = new Set();
+        todasAtividadesConcurso.forEach(data => {
+            if (data.cargoId === cargoSelecionado && (data.assunto || data.disciplina)) {
+                assuntosEncontrados.add(data.assunto || data.disciplina);
+            }
+        });
+
+        Array.from(assuntosEncontrados).sort().forEach(assunto => {
+            const opt = document.createElement('option');
+            opt.value = assunto;
+            opt.innerText = assunto;
+            selectAssunto.appendChild(opt);
+        });
+
+        modal.style.display = 'flex';
+    };
+
+    window.iniciarFiltroPorAssunto = async () => {
+        const assuntoEscolhido = document.getElementById('select-filtro-assunto').value;
+        if (!assuntoEscolhido) return;
+
+        document.getElementById('modal-filtro-assunto').style.display = 'none';
+        disciplinaSelecionada = assuntoEscolhido;
+        document.getElementById('loader-questoes').style.display = 'flex';
+        window.irParaView('view-questoes');
+
+        try {
+            bateriaQuestoes = [];
+            todasAtividadesConcurso.forEach(data => {
+                const tituloAssuntoStr = data.assunto || data.disciplina;
+                if (data.cargoId === cargoSelecionado && tituloAssuntoStr === assuntoEscolhido && data.questoes) {
+                    data.questoes.forEach((qItem, idx) => {
+                        bateriaQuestoes.push({
+                            idQ: `${data.idOriginal}_${idx}`,
+                            ...qItem
+                        });
+                    });
+                }
+            });
+
+            const safeAssuntoKey = assuntoEscolhido.replace(/[^a-zA-Z0-9]/g, '_');
+            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${safeAssuntoKey}`;
+            const progressoSalvoLocal = localStorage.getItem(cacheProgKey);
+            
+            if (progressoSalvoLocal) {
+                progressoUsuario = JSON.parse(progressoSalvoLocal);
+                if(!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
+            } else {
+                const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${safeAssuntoKey}`));
+                if (docProgresso.exists()) {
+                    progressoUsuario = docProgresso.data();
+                    if(!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
+                } else {
+                    progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
+                }
+                localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
+            }
+
+            questoesPendentes = bateriaQuestoes.filter(q => !progressoUsuario.resolvidas[q.idQ]);
+            document.getElementById('loader-questoes').style.display = 'none';
+
+            if (questoesPendentes.length === 0) {
+                document.getElementById('fim-disciplina').style.display = 'flex';
+                document.getElementById('area-resolucao').style.display = 'none';
+            } else {
+                questoesPendentes = questoesPendentes.sort(() => Math.random() - 0.5);
+                carregarProximaQuestao();
+                document.getElementById('q-concurso-nome').innerText = assuntoEscolhido.substring(0, 15) + (assuntoEscolhido.length > 15 ? '...' : '');
+            }
+        } catch (e) { console.error(e); }
+    };
+
     const carregarProximaQuestao = () => {
         if (questoesPendentes.length === 0) {
             document.getElementById('fim-disciplina').style.display = 'flex';
@@ -605,6 +742,20 @@ window.Router.register('homeconcurseiro', async () => {
         <div id="modal-alert-aluno" class="modal-aluno"><div class="modal-aluno-content"><div id="alert-icon-aluno" style="margin-bottom:15px;"></div><h3 id="alert-title-aluno" style="color:#0f172a; margin-top:0; font-size: 22px; font-weight: 900;"></h3><div id="alert-msg-aluno" style="color:#64748b; margin-bottom:25px; line-height: 1.5;"></div><button class="btn-modal-aluno" onclick="window.closeAlertAluno()" style="margin-top:0;">OK, ENTENDI</button></div></div>
         <div id="modal-confirm-aluno" class="modal-aluno"><div class="modal-aluno-content"><div style="font-size: 40px; color: #ef4444; margin-bottom: 15px;"><i class="fa-solid fa-triangle-exclamation"></i></div><h3 id="confirm-title-aluno" style="color:#0f172a; margin-top:0; font-size: 22px; font-weight: 900;"></h3><p id="confirm-msg-aluno" style="color:#64748b; margin-bottom:25px; line-height: 1.5; font-weight: 600;"></p><div style="display:flex; flex-direction: column; gap:12px;"><button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.pendingConfirmActionAluno()">SIM, CONFIRMAR ESCOLHA</button><button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="this.closest('.modal-aluno').style.display='none'">CANCELAR</button></div></div></div>
         
+        <!-- MODAL FILTRO ASSUNTO -->
+        <div id="modal-filtro-assunto" class="modal-aluno">
+            <div class="modal-aluno-content">
+                <div style="font-size: 35px; color: #8b5cf6; margin-bottom: 10px;"><i class="fa-solid fa-filter"></i></div>
+                <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900;">Filtrar por Assunto</h3>
+                <p style="color:#64748b; font-size: 13px; margin-bottom:15px;">Escolha um assunto específico deste cargo para focar seus estudos.</p>
+                <select id="select-filtro-assunto" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; outline: none;"></select>
+                <div style="display:flex; flex-direction: column; gap:10px;">
+                    <button class="btn-modal-aluno" style="background:#8b5cf6; margin-top:0;" onclick="window.iniciarFiltroPorAssunto()">FILTRAR QUESTÕES</button>
+                    <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="this.closest('.modal-aluno').style.display='none'">CANCELAR</button>
+                </div>
+            </div>
+        </div>
+
         <!-- ESTADO SEM CONCURSO -->
         <div id="estado-vazio-concurso" style="display:none; padding: 40px 20px; text-align:center;">
             <div style="font-size: 50px; color: #cbd5e1; margin-bottom: 20px;"><i class="fa-solid fa-folder-open"></i></div>
@@ -677,6 +828,8 @@ window.Router.register('homeconcurseiro', async () => {
                 </div>
 
                 <div class="q-actions">
+                    <button class="btn-acao-q" onclick="window.aplicarFiltroQuestoes('misturado')" title="Misturar Todas as Matérias" style="color:#3b82f6;"><i class="fa-solid fa-shuffle"></i></button>
+                    <button class="btn-acao-q" onclick="window.aplicarFiltroQuestoes('assunto')" title="Filtrar por Título/Assunto" style="color:#8b5cf6;"><i class="fa-solid fa-filter"></i></button>
                     <button id="btn-mute-sound" class="btn-acao-q" onclick="window.toggleMute()" style="color:#10b981;"><i class="fa-solid fa-volume-high"></i></button>
                 </div>
 
