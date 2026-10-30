@@ -407,8 +407,9 @@ window.Router.register('questoesmaster', async () => {
                        "Regras:\n" +
                        "1. Cada questão deve ter 5 alternativas (a, b, c, d, e).\n" +
                        "2. O gabarito precisa ser mesclado/aleatório (não deixe respostas corretas seguidas na mesma letra).\n" +
-                       "3. Formate rigorosamente neste padrão exato para todas as 50 questões (sem negrito e sem pular linhas extras no meio da questão):\n\n" +
-                       "1) Enunciado da questão aqui\n" +
+                       "3. Mantenha os enunciados diretos e as alternativas curtas e objetivas (evite textos longos, crie alternativas de no máximo 2 linhas) para que caibam bem na tela do celular.\n" +
+                       "4. Formate rigorosamente neste padrão exato para todas as 50 questões (sem negrito e sem pular linhas extras no meio da questão):\n\n" +
+                       "1) Enunciado curto da questão aqui\n" +
                        "a) alternativa a\n" +
                        "b) alternativa b\n" +
                        "c) alternativa c\n" +
@@ -615,12 +616,18 @@ window.Router.register('questoesmaster', async () => {
 
         try {
             if (forcarBanco || !window.memoriaAtividadesConc) {
-                containerDados.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin" style="font-size:30px; color:#0f172a;"></i></div>';
+                if (!forcarBanco) containerDados.innerHTML = '<div style="text-align:center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin" style="font-size:30px; color:#0f172a;"></i></div>';
                 const auth = window.authMethods.getAuth();
                 const q = query(collection(db, "atividades_concursos"), where("professorId", "==", auth.currentUser.uid), where("tipo", "==", "questoes_concurso"));
                 const snap = await getDocs(q);
                 
-                let obtidas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                let obtidas = [];
+                snap.forEach(d => {
+                    const dt = d.data();
+                    if (!dt.assunto) dt.assunto = dt.disciplina;
+                    if (!dt.cargoNome) dt.cargoNome = 'CARGO NÃO INFORMADO';
+                    obtidas.push({ id: d.id, ...dt });
+                });
                 obtidas.sort((a,b) => (b.dataEnvio?.seconds || 0) - (a.dataEnvio?.seconds || 0));
                 window.memoriaAtividadesConc = obtidas;
             }
@@ -682,17 +689,17 @@ window.Router.register('questoesmaster', async () => {
                 const nomeDoCargo = data.cargoNome ? data.cargoNome : 'CARGO NÃO INFORMADO';
 
                 return `
-                <div class="card-premium-list" style="margin-bottom:10.5px; padding:0 15px; border-left:4px solid #0f172a; background:#fff; border-radius:8px; display:flex; align-items:center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); height: 45px; box-sizing: border-box;">
-                    <div style="flex: 1.1; display: flex; align-items: center; overflow: hidden; gap: 5px;">
-                        <span style="font-size:9px; padding:2px 6px; background:#0f172a; color:white; border-radius:4px; font-weight:700; white-space:nowrap;">${data.concursoNome}</span>
-                        <span style="font-size:9px; padding:2px 6px; background:#f1f5f9; color:#0f172a; border-radius:4px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${assunto}">${assunto}</span>
+                <div class="card-premium-list" style="margin-bottom:10.5px; padding:0 15px; border-left:4px solid #0f172a; background:#fff; border-radius:8px; display:grid; grid-template-columns: 1fr 1fr auto; align-items:center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); height: 45px; box-sizing: border-box; width: 100%; gap: 15px;">
+                    <div style="display: flex; align-items: center; overflow: hidden; gap: 5px;">
+                        <span style="font-size:9px; padding:2px 6px; background:#0f172a; color:white; border-radius:4px; font-weight:700; white-space:nowrap; flex-shrink: 0;">${data.concursoNome}</span>
+                        <span style="font-size:9px; padding:2px 6px; background:#f1f5f9; color:#0f172a; border-radius:4px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:inline-block; max-width: 100%;" title="${assunto}">${assunto}</span>
                     </div>
-                    <div style="flex: 1.9; display: flex; justify-content: center; align-items: center; flex-direction:column; overflow: hidden; padding: 0 10px; line-height: 1.2;">
-                        <h3 style="margin:0; color:#0f172a; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align: center; font-weight: 800; text-transform: uppercase;">${data.disciplina}</h3>
-                        <span style="font-size:9px; color:#64748b; font-weight:700; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;" title="${nomeDoCargo}">${nomeDoCargo}</span>
+                    <div style="display: flex; justify-content: center; flex-direction:column; overflow: hidden; line-height: 1.2; text-align: center;">
+                        <h3 style="margin:0; color:#0f172a; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight: 800; text-transform: uppercase;" title="${data.disciplina}">${data.disciplina}</h3>
+                        <span style="font-size:9px; color:#64748b; font-weight:700; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${nomeDoCargo}">${nomeDoCargo}</span>
                     </div>
-                    <div style="flex: 1.5; display: flex; justify-content: flex-end; align-items: center; gap: 12px;">
-                        <span style="font-size:10px; color:#94a3b8; white-space:nowrap; font-weight: 700;"><i class="fa-solid fa-list-check"></i> ${qtd} Q</span>
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px; white-space: nowrap;">
+                        <span style="font-size:10px; color:#94a3b8; font-weight: 700;"><i class="fa-solid fa-list-check"></i> ${qtd} Q</span>
                         <div style="display: flex; gap: 5px;">
                             <button onclick="window.visualizarAtividadeConc('${data.id}')" style="background:#e0f2fe; color:#0369a1; border:none; border-radius:6px; padding:6px 10px; cursor:pointer; height:30px;" title="Visualizar"><i class="fa-solid fa-eye"></i></button>
                             <button onclick="window.prepararEdicaoConc('${data.id}')" style="background:#f1f5f9; color:#0f172a; border:none; border-radius:6px; padding:6px 10px; cursor:pointer; height:30px;" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
