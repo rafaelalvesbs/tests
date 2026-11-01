@@ -950,6 +950,8 @@ window.Router.register('homeconcurseiro', async () => {
                 </div>
             `;
             window.irParaView('view-revisao');
+        } else if (tipo === 'erros') {
+            window.refazerTodasErradas();
         } else {
             let origBateria = bateriaQuestoes.slice();
             let filtradas = [];
@@ -958,7 +960,6 @@ window.Router.register('homeconcurseiro', async () => {
                 if (res) {
                     if (tipo === 'todas') filtradas.push(q);
                     if (tipo === 'acertos' && res.acertou) filtradas.push(q);
-                    if (tipo === 'erros' && !res.acertou) filtradas.push(q);
                 }
             });
 
@@ -984,7 +985,10 @@ window.Router.register('homeconcurseiro', async () => {
 
     window.refazerTodasErradas = () => {
         const erradas = bateriaQuestoes.filter(q => progressoUsuario.resolvidas[q.idQ] && !progressoUsuario.resolvidas[q.idQ].acertou);
-        if(erradas.length === 0) return;
+        if (erradas.length === 0) {
+            window.showAlertAluno("Excelente!", "Você não tem nenhuma questão errada para refazer nesta lista.", "info");
+            return;
+        }
         
         refazendoErros = true;
         questoesPendentes = erradas.sort(() => Math.random() - 0.5);
@@ -1000,8 +1004,13 @@ window.Router.register('homeconcurseiro', async () => {
         setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`), progressoUsuario, { merge: true });
 
         atualizarPlacarEstatisticas();
-        carregarProximaQuestao();
-        window.irParaView('view-questoes');
+        document.getElementById('loader-questoes').style.display = 'flex';
+        document.getElementById('area-resolucao').style.display = 'none';
+        
+        setTimeout(() => {
+            document.getElementById('loader-questoes').style.display = 'none';
+            carregarProximaQuestao();
+        }, 300);
     };
 
     window.refazerQuestaoUnica = (idQ) => {
