@@ -164,6 +164,7 @@ window.Router.register('homeconcurseiro', async () => {
                     window.filtrarDisciplinasPeloCargo();
                     if (badgeCargo && cargosDisponiveis[cargoSelecionado]) {
                         badgeCargo.innerHTML = `<i class="fa-solid fa-user-tie" style="margin-right: 8px;"></i>Cargo: ${cargosDisponiveis[cargoSelecionado]}`;
+                        badgeCargo.style.display = 'inline-block';
                     } else if (badgeCargo) {
                         badgeCargo.style.display = 'none';
                     }
@@ -177,14 +178,17 @@ window.Router.register('homeconcurseiro', async () => {
                 snapF.forEach(docF => {
                     meusFeedbacks.push({ id: docF.id, ...docF.data() });
                 });
-           } else {
+
+                document.getElementById('box-carregando-inicial').style.display = 'none';
+                document.getElementById('btn-iniciar-jornada').style.display = 'block';
+
+            } else {
                 document.getElementById('estado-vazio-concurso').style.display = 'block';
                 document.getElementById('view-boas-vindas').style.display = 'none';
             }
         } catch (e) {
             console.error("Erro ao buscar dados:", e);
-            const badgeCargo = document.getElementById('cargo-atual-badge');
-            if(badgeCargo) badgeCargo.style.display = 'none';
+            document.getElementById('box-carregando-inicial').innerHTML = '<p style="color:#ef4444; font-size:12px;">Falha de conexão. Tente recarregar.</p>';
         }
     };
 
@@ -1034,12 +1038,8 @@ window.Router.register('homeconcurseiro', async () => {
                 setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_reps`), { reportadas: globReps }, { merge: true });
             }
 
-            if (meusFeedbacks.length === 0) {
-                window.buscarDadosIniciais(); // Recarrega todas as questões com as edições atualizadas
-                window.abrirDisciplinas();
-            } else {
-                window.abrirFeedbacksAluno();
-            }
+            window.buscarDadosIniciais();
+            window.abrirDisciplinas();
         } catch(e) {
             console.error(e);
         }
@@ -1290,8 +1290,14 @@ window.Router.register('homeconcurseiro', async () => {
                 <div class="w-icon"><i class="fa-solid fa-graduation-cap"></i></div>
                 <div class="w-title">Olá, ${primeiroNome}!</div>
                 <div class="w-subtitle">Bons estudos hoje! Prepare-se para detonar nas questões.</div>
-                <div id="cargo-atual-badge" style="display: inline-block; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 25px; font-size: 14px; font-weight: 700; color: #38bdf8; border: 1px solid rgba(56,189,248,0.2);"><i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i>Buscando cargo...</div>
-                <button class="btn-hc-primario" onclick="window.iniciarJornada()">INICIAR ESTUDOS <i class="fa-solid fa-arrow-right" style="margin-left: 8px;"></i></button>
+                
+                <div id="box-carregando-inicial" style="display: flex; justify-content: center; margin: 20px 0;">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 40px; color: #38bdf8;"></i>
+                </div>
+
+                <div id="cargo-atual-badge" style="display: none; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 25px; font-size: 14px; font-weight: 700; color: #38bdf8; border: 1px solid rgba(56,189,248,0.2);"></div>
+                
+                <button id="btn-iniciar-jornada" class="btn-hc-primario" onclick="window.iniciarJornada()" style="display: none;">INICIAR</button>
             </div>
         </div>
 
