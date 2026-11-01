@@ -486,7 +486,7 @@ window.Router.register('homeconcurseiro', async () => {
         
         if (progressoUsuario.favoritas[idQ]) {
             delete progressoUsuario.favoritas[idQ];
-            document.getElementById('btn-fav-q').style.color = '#cbd5e1';
+            document.getElementById('btn-fav-q').style.color = '#64748b';
         } else {
             progressoUsuario.favoritas[idQ] = true;
             document.getElementById('btn-fav-q').style.color = '#eab308';
@@ -543,7 +543,9 @@ window.Router.register('homeconcurseiro', async () => {
         document.getElementById('area-resolucao').style.display = 'block';
         document.getElementById('q-concurso-nome').innerText = dadosConcurso.titulo;
         
-        const favIconColor = (progressoUsuario.favoritas && progressoUsuario.favoritas[questaoAtual.idQ]) ? '#eab308' : '#cbd5e1';
+        const favIconColor = (progressoUsuario.favoritas && progressoUsuario.favoritas[questaoAtual.idQ]) ? '#eab308' : '#64748b';
+        const btnFav = document.getElementById('btn-fav-q');
+        if (btnFav) btnFav.style.color = favIconColor;
         
         let headerQuestaoAdicional = '';
         if (refazendoErros) {
@@ -566,15 +568,9 @@ window.Router.register('homeconcurseiro', async () => {
 
         containerQuestao.innerHTML = `
             <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <div>
-                        <span style="display: inline-block; padding: 2px 10px; background: #0f172a; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800;">QUESTÃO ${numQuestao}</span>
-                        ${headerQuestaoAdicional}
-                    </div>
-                    <div style="display: flex; gap: 12px;">
-                        <i id="btn-fav-q" class="fa-solid fa-star" onclick="window.toggleFavorito()" style="color: ${favIconColor}; font-size: 18px; cursor: pointer; transition: 0.2s;" title="Favoritar Questão"></i>
-                        <i class="fa-solid fa-triangle-exclamation" onclick="window.abrirModalReporte()" style="color: #cbd5e1; font-size: 18px; cursor: pointer; transition: 0.2s;" title="Reportar Erro"></i>
-                    </div>
+                <div style="margin-bottom: 10px;">
+                    <span style="display: inline-block; padding: 2px 10px; background: #0f172a; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800;">QUESTÃO ${numQuestao}</span>
+                    ${headerQuestaoAdicional}
                 </div>
                 <p style="font-weight: 600; color: #1e293b; font-size: 14px; line-height: 1.6; margin-bottom: 15px;">${questaoAtual.enunciado.replace(/\n/g, '<br>')}</p>
                 <div style="display: grid; gap: 8px;">
@@ -955,7 +951,8 @@ window.Router.register('homeconcurseiro', async () => {
                 <div class="q-actions">
                     <div id="display-timer" style="display:none; align-items:center; background:#fff; border:1px solid #e2e8f0; padding:0 12px; border-radius:10px; color:#f59e0b; font-weight:800; font-size:14px; letter-spacing:1px; height:40px;">00:00</div>
                     <button id="btn-timer" class="btn-acao-q" onclick="window.toggleTimer()" title="Cronômetro" style="color:#64748b;"><i class="fa-solid fa-clock"></i></button>
-                    <div style="width: 2px; background: #e2e8f0; margin: 0 4px;"></div>
+                    <button id="btn-fav-q" class="btn-acao-q" onclick="window.toggleFavorito()" title="Favoritar Questão" style="color:#64748b;"><i class="fa-solid fa-star"></i></button>
+                    <button class="btn-acao-q" onclick="window.abrirModalReporte()" title="Reportar Erro" style="color:#64748b;"><i class="fa-solid fa-triangle-exclamation"></i></button>
                     <button class="btn-acao-q" onclick="window.abrirModalFiltroDisciplina()" title="Filtrar por Disciplina" style="color:#3b82f6;"><i class="fa-solid fa-shuffle"></i></button>
                     <button class="btn-acao-q" onclick="window.abrirModalFiltroAssunto()" title="Filtrar por Assunto" style="color:#8b5cf6;"><i class="fa-solid fa-filter"></i></button>
                     <button id="btn-mute-sound" class="btn-acao-q" onclick="window.toggleMute()" title="Mutar Som" style="color:#10b981;"><i class="fa-solid fa-volume-high"></i></button>
