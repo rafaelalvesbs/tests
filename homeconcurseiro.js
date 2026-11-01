@@ -655,6 +655,7 @@ window.Router.register('homeconcurseiro', async () => {
             progressoUsuario.favoritas[idQ] = true;
             globFavs[idQ] = true;
             document.getElementById('btn-fav-q').style.color = '#eab308';
+            localStorage.removeItem(`p4f_ja_abriu_favs_${userAtual.uid}`);
         }
         
         const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`;
@@ -734,8 +735,7 @@ window.Router.register('homeconcurseiro', async () => {
         
         let headerQuestaoAdicional = '';
         if (ehModoRevisao) {
-            let descDisc = questaoAtual.originalData ? questaoAtual.originalData.disciplina : '';
-            headerQuestaoAdicional = `<span style="display: inline-block; padding: 2px 10px; background: #eab308; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800; margin-left: 8px;">REVISÃO DE FAVORITA - ${descDisc}</span>`;
+            headerQuestaoAdicional = `<span style="display: inline-block; padding: 2px 10px; background: #eab308; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800; margin-left: 8px;">REVISÃO</span>`;
         } else if (refazendoErros) {
             headerQuestaoAdicional = `<span style="display: inline-block; padding: 2px 10px; background: #ef4444; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800; margin-left: 8px;">REFAZENDO ERROS</span>`;
         }
@@ -784,7 +784,7 @@ window.Router.register('homeconcurseiro', async () => {
 
         containerQuestao.innerHTML = `
             <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-                <div style="margin-bottom: 10px;">
+                <div style="margin-bottom: 10px; display: flex; align-items: center;">
                     <span style="display: inline-block; padding: 2px 10px; background: #0f172a; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800;">QUESTÃO ${numQuestao}</span>
                     ${headerQuestaoAdicional}
                 </div>
