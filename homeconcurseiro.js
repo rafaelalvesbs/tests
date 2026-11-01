@@ -239,21 +239,33 @@ window.Router.register('homeconcurseiro', async () => {
         const globReps = JSON.parse(localStorage.getItem(repCacheKey) || '{}');
         const temReportadas = Object.keys(globReps).length > 0;
 
-        let htmlBase = '';
+        const jaAbriuFav = localStorage.getItem(`p4f_ja_abriu_favs_${userAtual.uid}`);
+
+        let htmlExtras = '';
 
         if (temFavoritas) {
-            htmlBase += `
-                <div class="card-disciplina" onclick="window.abrirFavoritas()" style="border-color: #eab308; background: #fefce8; margin-bottom: 12px;">
-                    <div class="icone-disc" style="background: #eab308; color: #fff;"><i class="fa-solid fa-star"></i></div>
-                    <div class="nome-disc" style="color: #ca8a04;">QUESTÕES FAVORITAS</div>
-                    <i class="fa-solid fa-chevron-right seta-disc" style="color: #eab308;"></i>
-                </div>
-            `;
+            if (!jaAbriuFav) {
+                htmlExtras += `
+                    <div class="card-disciplina" onclick="window.abrirFavoritas()" style="border-color: #eab308; background: #fefce8; margin-top: 12px;">
+                        <div class="icone-disc" style="background: #eab308; color: #fff;"><i class="fa-solid fa-star"></i></div>
+                        <div class="nome-disc" style="color: #ca8a04;">QUESTÕES FAVORITAS</div>
+                        <i class="fa-solid fa-chevron-right seta-disc" style="color: #eab308;"></i>
+                    </div>
+                `;
+            } else {
+                htmlExtras += `
+                    <div class="card-disciplina" onclick="window.abrirFavoritas()" style="margin-top: 12px;">
+                        <div class="icone-disc" style="background: #fefce8; color: #ca8a04;"><i class="fa-solid fa-star"></i></div>
+                        <div class="nome-disc">QUESTÕES FAVORITAS</div>
+                        <i class="fa-solid fa-chevron-right seta-disc"></i>
+                    </div>
+                `;
+            }
         }
 
         if (temReportadas) {
-            htmlBase += `
-                <div class="card-disciplina" onclick="window.abrirReportadas()" style="border-color: #ef4444; background: #fef2f2; margin-bottom: 12px;">
+            htmlExtras += `
+                <div class="card-disciplina" onclick="window.abrirReportadas()" style="border-color: #ef4444; background: #fef2f2; margin-top: 12px;">
                     <div class="icone-disc" style="background: #ef4444; color: #fff;"><i class="fa-solid fa-triangle-exclamation"></i></div>
                     <div class="nome-disc" style="color: #b91c1c;">QUESTÕES REPORTADAS</div>
                     <i class="fa-solid fa-chevron-right seta-disc" style="color: #ef4444;"></i>
@@ -261,10 +273,12 @@ window.Router.register('homeconcurseiro', async () => {
             `;
         }
 
+        let htmlDisciplinas = '';
+
         if (disciplinasAtuais.length === 0) {
-            container.innerHTML = htmlBase + '<p style="color:#64748b; font-size:13px; text-align:center;">Nenhuma disciplina cadastrada para este cargo ainda.</p>';
+            htmlDisciplinas = '<p style="color:#64748b; font-size:13px; text-align:center;">Nenhuma disciplina cadastrada para este cargo ainda.</p>';
         } else {
-            container.innerHTML = htmlBase + disciplinasAtuais.map(disc => `
+            htmlDisciplinas = disciplinasAtuais.map(disc => `
                 <div class="card-disciplina" onclick="window.abrirQuestoesDisciplina('${disc}')">
                     <div class="icone-disc"><i class="fa-solid fa-book-open"></i></div>
                     <div class="nome-disc">${disc}</div>
@@ -272,10 +286,13 @@ window.Router.register('homeconcurseiro', async () => {
                 </div>
             `).join('');
         }
+        
+        container.innerHTML = htmlDisciplinas + htmlExtras;
         window.irParaView('view-disciplinas');
     };
 
     window.abrirFavoritas = async () => {
+        localStorage.setItem(`p4f_ja_abriu_favs_${userAtual.uid}`, "sim");
         disciplinaSelecionada = "FAVORITAS";
         document.getElementById('loader-questoes').style.display = 'flex';
         window.irParaView('view-questoes');
@@ -663,8 +680,8 @@ window.Router.register('homeconcurseiro', async () => {
     };
 
     window.enviarReporte = async () => {
-        const desc = document.getElementById('input-reporte-erro').value;
-        if (!desc.trim()) return;
+        let desc = document.getElementById('input-reporte-erro').value;
+        if (!desc.trim()) desc = 'Questão reportada pelo aluno sem descrição adicional.';
         
         document.getElementById('modal-reportar-erro').style.display = 'none';
         
@@ -925,12 +942,12 @@ window.Router.register('homeconcurseiro', async () => {
         .cc-title { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 5px; text-transform: uppercase; }
         .cc-subtitle { font-size: 13px; color: #64748b; font-weight: 600; }
 
-        .lista-disciplinas { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 20px; }
-        .card-disciplina { background: #fff; padding: 18px 20px; border-radius: 16px; display: flex; align-items: center; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .lista-disciplinas { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 15px; }
+        .card-disciplina { background: #fff; padding: 10px 14px; border-radius: 12px; display: flex; align-items: center; border: 1px solid #e2e8f0; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
         .card-disciplina:hover { border-color: #38bdf8; background: #f0f9ff; }
-        .icone-disc { width: 40px; height: 40px; background: #f1f5f9; color: #0f172a; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 15px; }
-        .nome-disc { flex: 1; font-weight: 800; color: #1e293b; font-size: 15px; text-transform: uppercase; }
-        .seta-disc { color: #94a3b8; font-size: 14px; }
+        .icone-disc { width: 28px; height: 28px; background: #f1f5f9; color: #0f172a; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-right: 12px; }
+        .nome-disc { flex: 1; font-weight: 800; color: #1e293b; font-size: 12px; text-transform: uppercase; }
+        .seta-disc { color: #94a3b8; font-size: 11px; }
 
         /* VIEW 4: RESOLUÇÃO DE QUESTÃO */
         .q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
