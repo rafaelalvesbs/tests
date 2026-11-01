@@ -703,11 +703,12 @@ window.Router.register('homeconcurseiro', async () => {
         
         try {
             const reportId = `${userAtual.uid}_${questaoAtual.idQ}_${Date.now()}`;
+            const discCorreta = questaoAtual.originalData ? questaoAtual.originalData.disciplina : (questaoAtual.disciplina || disciplinaSelecionada);
             await setDoc(doc(db, "reportes_questoes", reportId), {
                 usuarioId: userAtual.uid,
                 questaoId: questaoAtual.idQ,
                 concursoId: dadosConcurso.id,
-                disciplina: questaoAtual.originalData ? questaoAtual.originalData.disciplina : disciplinaSelecionada,
+                disciplina: discCorreta,
                 descricao: desc,
                 data: Date.now()
             });
@@ -719,6 +720,7 @@ window.Router.register('homeconcurseiro', async () => {
             
             await setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_reps`), { reportadas: globReps }, { merge: true });
 
+            document.getElementById('input-reporte-erro').value = '';
             window.showAlertAluno("Reporte Enviado", "Obrigado por avisar! Nossa equipe vai analisar essa questão.");
         } catch(e) {
             window.showAlertAluno("Erro", "Falha ao enviar reporte. Tente novamente.", "error");
@@ -962,9 +964,20 @@ window.Router.register('homeconcurseiro', async () => {
 
     window.marcarFeedbackLido = async (idFb) => {
         try {
+            const fbLido = meusFeedbacks.find(f => f.id === idFb);
             await updateDoc(doc(db, "feedbacks_questoes", idFb), { lido: true });
             meusFeedbacks = meusFeedbacks.filter(f => f.id !== idFb);
-            if(meusFeedbacks.length === 0) {
+            
+            if (fbLido && fbLido.questaoId) {
+                const repCacheKey = `p4f_reps_${userAtual.uid}_${dadosConcurso.id}`;
+                let globReps = JSON.parse(localStorage.getItem(repCacheKey) || '{}');
+                delete globReps[fbLido.questaoId];
+                localStorage.setItem(repCacheKey, JSON.stringify(globReps));
+                setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_reps`), { reportadas: globReps }, { merge: true });
+            }
+
+            if (meusFeedbacks.length === 0) {
+                window.buscarDadosIniciais(); // Recarrega todas as questões com as edições atualizadas
                 window.abrirDisciplinas();
             } else {
                 window.abrirFeedbacksAluno();
