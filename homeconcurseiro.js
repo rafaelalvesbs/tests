@@ -906,6 +906,142 @@ window.Router.register('homeconcurseiro', async () => {
         document.getElementById('stat-pct').innerText = `${porcentagem}%`;
     };
 
+    window.abrirModoRevisao = (tipo) => {
+        const viewRevisao = document.getElementById('view-revisao');
+        const containerLista = document.getElementById('lista-revisao-conteudo');
+        const tituloRevisao = document.getElementById('titulo-revisao');
+        
+        let filtradas = [];
+        let htmlConteudo = '';
+        
+        const chavesResolvidas = Object.keys(progressoUsuario.resolvidas || {});
+        
+        if (chavesResolvidas.length === 0) {
+            containerLista.innerHTML = '<p style="text-align:center; color:#64748b; font-size:14px; padding:20px;">Nenhuma questão resolvida ainda.</p>';
+            window.irParaView('view-revisao');
+            return;
+        }
+
+        if (tipo === 'grafico') {
+            tituloRevisao.innerText = 'Seu Aproveitamento';
+            const pctAcerto = Math.round((progressoUsuario.acertos / progressoUsuario.totalFeitas) * 100) || 0;
+            const pctErro = 100 - pctAcerto;
+            
+            htmlConteudo = `
+                <div style="display:flex; flex-direction:column; align-items:center; padding:30px 10px;">
+                    <div style="width: 200px; height: 200px; border-radius: 50%; background: conic-gradient(#10b981 0% ${pctAcerto}%, #ef4444 ${pctAcerto}% 100%); margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);"></div>
+                    <div style="display:flex; gap:30px; width:100%; justify-content:center;">
+                        <div style="text-align:center;">
+                            <div style="width:16px; height:16px; background:#10b981; border-radius:4px; display:inline-block; margin-bottom:5px;"></div>
+                            <div style="font-size:18px; font-weight:900; color:#0f172a;">${pctAcerto}%</div>
+                            <div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase;">Acertos (${progressoUsuario.acertos})</div>
+                        </div>
+                        <div style="text-align:center;">
+                            <div style="width:16px; height:16px; background:#ef4444; border-radius:4px; display:inline-block; margin-bottom:5px;"></div>
+                            <div style="font-size:18px; font-weight:900; color:#0f172a;">${pctErro}%</div>
+                            <div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase;">Erros (${progressoUsuario.erros})</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            bateriaQuestoes.forEach(q => {
+                const res = progressoUsuario.resolvidas[q.idQ];
+                if (res) {
+                    if (tipo === 'todas') filtradas.push({q, res});
+                    if (tipo === 'acertos' && res.acertou) filtradas.push({q, res});
+                    if (tipo === 'erros' && !res.acertou) filtradas.push({q, res});
+                }
+            });
+
+            if (tipo === 'todas') tituloRevisao.innerText = 'Questões Resolvidas';
+            if (tipo === 'acertos') tituloRevisao.innerText = 'Seus Acertos';
+            if (tipo === 'erros') tituloRevisao.innerText = 'Seus Erros';
+
+            if (filtradas.length === 0) {
+                htmlConteudo = `<p style="text-align:center; color:#64748b; font-size:14px; padding:20px;">Nenhuma questão encontrada para este filtro.</p>`;
+            } else {
+                if (tipo === 'erros') {
+                    htmlConteudo += `
+                        <button onclick="window.refazerTodasErradas()" style="width:100%; background:#ef4444; color:#fff; border:none; padding:15px; border-radius:12px; font-weight:800; font-size:14px; cursor:pointer; margin-bottom:20px; box-shadow:0 4px 10px rgba(239,68,68,0.2); transition:0.2s;">
+                            <i class="fa-solid fa-rotate-right" style="margin-right:8px;"></i> REFAZER TODAS AS ERRADAS
+                        </button>
+                    `;
+                }
+
+                htmlConteudo += filtradas.map((item) => {
+                    const badgeColor = item.res.acertou ? '#10b981' : '#ef4444';
+                    const badgeText = item.res.acertou ? 'ACERTO' : 'ERRO';
+                    const trechoEnunciado = item.q.enunciado.substring(0, 120) + '...';
+                    
+                    let btnRefazerIndividual = '';
+                    if (!item.res.acertou) {
+                        btnRefazerIndividual = `
+                            <button onclick="window.refazerQuestaoUnica('${item.q.idQ}')" style="margin-top:15px; background:#fff; border:1px solid #cbd5e1; color:#334155; padding:10px 14px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-rotate-right"></i> Refazer esta questão
+                            </button>
+                        `;
+                    }
+
+                    return `
+                        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:12px; box-shadow:0 2px 5px rgba(0,0,0,0.02);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <span style="font-size:10px; font-weight:800; color:#fff; background:${badgeColor}; padding:4px 8px; border-radius:6px; letter-spacing:0.5px;">${badgeText}</span>
+                            </div>
+                            <p style="color:#334155; font-size:13px; font-weight:500; line-height:1.6; margin-bottom:0;">${trechoEnunciado}</p>
+                            ${btnRefazerIndividual}
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+        
+        containerLista.innerHTML = htmlConteudo;
+        window.irParaView('view-revisao');
+    };
+
+    window.refazerTodasErradas = () => {
+        const erradas = bateriaQuestoes.filter(q => progressoUsuario.resolvidas[q.idQ] && !progressoUsuario.resolvidas[q.idQ].acertou);
+        if(erradas.length === 0) return;
+        
+        refazendoErros = true;
+        questoesPendentes = erradas.sort(() => Math.random() - 0.5);
+        
+        questoesPendentes.forEach(q => {
+            delete progressoUsuario.resolvidas[q.idQ];
+            progressoUsuario.erros--;
+            progressoUsuario.totalFeitas--;
+        });
+        
+        const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`;
+        localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
+        setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`), progressoUsuario, { merge: true });
+
+        atualizarPlacarEstatisticas();
+        carregarProximaQuestao();
+        window.irParaView('view-questoes');
+    };
+
+    window.refazerQuestaoUnica = (idQ) => {
+        const questao = bateriaQuestoes.find(q => q.idQ === idQ);
+        if(!questao) return;
+
+        refazendoErros = true;
+        questoesPendentes = [questao];
+        
+        delete progressoUsuario.resolvidas[idQ];
+        progressoUsuario.erros--;
+        progressoUsuario.totalFeitas--;
+        
+        const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`;
+        localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
+        setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`), progressoUsuario, { merge: true });
+        
+        atualizarPlacarEstatisticas();
+        carregarProximaQuestao();
+        window.irParaView('view-questoes');
+    };
+
     window.responderQuestao = async (letraSelecionada) => {
         if (questaoRespondidaAgora) return;
         questaoRespondidaAgora = true;
@@ -1337,6 +1473,13 @@ window.Router.register('homeconcurseiro', async () => {
             <h2 style="color: #0f172a; font-weight: 900; margin-bottom: 5px;">Seus Feedbacks</h2>
             <p style="color: #64748b; font-size: 13px; margin-bottom: 20px;">Nossa equipe avaliou seus reportes.</p>
             <div id="lista-feedbacks-aluno"></div>
+        </div>
+
+        <!-- VIEW REVISAO (GRAFICOS E LISTAS) -->
+        <div id="view-revisao" class="view-concurseiro">
+            <button onclick="window.irParaView('view-questoes')" style="background:none; border:none; color:#64748b; font-weight:700; margin-bottom:20px; cursor:pointer; font-size:14px;"><i class="fa-solid fa-arrow-left"></i> Voltar para Questões</button>
+            <h2 id="titulo-revisao" style="color: #0f172a; font-weight: 900; margin-bottom: 25px;">Revisão</h2>
+            <div id="lista-revisao-conteudo"></div>
         </div>
 
         <!-- VIEW 4: RESOLUÇÃO -->
