@@ -231,10 +231,40 @@ window.Router.register('homeconcurseiro', async () => {
 
     window.abrirDisciplinas = () => {
         const container = document.getElementById('lista-disciplinas');
+        const favCacheKey = `p4f_favs_${userAtual.uid}_${dadosConcurso.id}`;
+        const globFavs = JSON.parse(localStorage.getItem(favCacheKey) || '{}');
+        const temFavoritas = Object.keys(globFavs).length > 0;
+
+        const repCacheKey = `p4f_reps_${userAtual.uid}_${dadosConcurso.id}`;
+        const globReps = JSON.parse(localStorage.getItem(repCacheKey) || '{}');
+        const temReportadas = Object.keys(globReps).length > 0;
+
+        let htmlBase = '';
+
+        if (temFavoritas) {
+            htmlBase += `
+                <div class="card-disciplina" onclick="window.abrirFavoritas()" style="border-color: #eab308; background: #fefce8; margin-bottom: 12px;">
+                    <div class="icone-disc" style="background: #eab308; color: #fff;"><i class="fa-solid fa-star"></i></div>
+                    <div class="nome-disc" style="color: #ca8a04;">QUESTÕES FAVORITAS</div>
+                    <i class="fa-solid fa-chevron-right seta-disc" style="color: #eab308;"></i>
+                </div>
+            `;
+        }
+
+        if (temReportadas) {
+            htmlBase += `
+                <div class="card-disciplina" onclick="window.abrirReportadas()" style="border-color: #ef4444; background: #fef2f2; margin-bottom: 12px;">
+                    <div class="icone-disc" style="background: #ef4444; color: #fff;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="nome-disc" style="color: #b91c1c;">QUESTÕES REPORTADAS</div>
+                    <i class="fa-solid fa-chevron-right seta-disc" style="color: #ef4444;"></i>
+                </div>
+            `;
+        }
+
         if (disciplinasAtuais.length === 0) {
-            container.innerHTML = '<p style="color:#64748b; font-size:13px; text-align:center;">Nenhuma disciplina cadastrada para este cargo ainda.</p>';
+            container.innerHTML = htmlBase + '<p style="color:#64748b; font-size:13px; text-align:center;">Nenhuma disciplina cadastrada para este cargo ainda.</p>';
         } else {
-            container.innerHTML = disciplinasAtuais.map(disc => `
+            container.innerHTML = htmlBase + disciplinasAtuais.map(disc => `
                 <div class="card-disciplina" onclick="window.abrirQuestoesDisciplina('${disc}')">
                     <div class="icone-disc"><i class="fa-solid fa-book-open"></i></div>
                     <div class="nome-disc">${disc}</div>
@@ -243,6 +273,129 @@ window.Router.register('homeconcurseiro', async () => {
             `).join('');
         }
         window.irParaView('view-disciplinas');
+    };
+
+    window.abrirFavoritas = async () => {
+        disciplinaSelecionada = "FAVORITAS";
+        document.getElementById('loader-questoes').style.display = 'flex';
+        window.irParaView('view-questoes');
+
+        try {
+            const favCacheKey = `p4f_favs_${userAtual.uid}_${dadosConcurso.id}`;
+            let globFavs = JSON.parse(localStorage.getItem(favCacheKey) || '{}');
+            const docFav = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_favs`));
+            if (docFav.exists() && docFav.data().favoritas) {
+                globFavs = { ...globFavs, ...docFav.data().favoritas };
+                localStorage.setItem(favCacheKey, JSON.stringify(globFavs));
+            }
+
+            bateriaQuestoes = [];
+            todasAtividadesConcurso.forEach(data => {
+                if (data.cargoId === cargoSelecionado && data.questoes) {
+                    data.questoes.forEach((qItem, idx) => {
+                        const qId = `${data.idOriginal}_${idx}`;
+                        if (globFavs[qId]) {
+                            bateriaQuestoes.push({ idQ: qId, ...qItem });
+                        }
+                    });
+                }
+            });
+
+            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_favoritas_session`;
+            const progressoSalvoLocal = localStorage.getItem(cacheProgKey);
+            
+            if (progressoSalvoLocal) {
+                progressoUsuario = JSON.parse(progressoSalvoLocal);
+                if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
+            } else {
+                const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_favoritas_session`));
+                if (docProgresso.exists()) {
+                    progressoUsuario = docProgresso.data();
+                    if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
+                } else {
+                    progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
+                }
+            }
+            
+            progressoUsuario.favoritas = globFavs;
+            localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
+
+            questoesPendentes = bateriaQuestoes.filter(q => !progressoUsuario.resolvidas[q.idQ]);
+            document.getElementById('loader-questoes').style.display = 'none';
+
+            if (bateriaQuestoes.length === 0) {
+                window.showAlertAluno("Lista Vazia", "Você ainda não favoritou nenhuma questão deste cargo.", "info");
+                window.abrirDisciplinas();
+            } else if (questoesPendentes.length === 0) {
+                document.getElementById('fim-disciplina').style.display = 'flex';
+                document.getElementById('area-resolucao').style.display = 'none';
+            } else {
+                questoesPendentes = questoesPendentes.sort(() => Math.random() - 0.5);
+                carregarProximaQuestao();
+                document.getElementById('q-concurso-nome').innerText = "FAVORITAS";
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    window.abrirReportadas = async () => {
+        disciplinaSelecionada = "REPORTADAS";
+        document.getElementById('loader-questoes').style.display = 'flex';
+        window.irParaView('view-questoes');
+
+        try {
+            const repCacheKey = `p4f_reps_${userAtual.uid}_${dadosConcurso.id}`;
+            let globReps = JSON.parse(localStorage.getItem(repCacheKey) || '{}');
+            const docRep = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_reps`));
+            if (docRep.exists() && docRep.data().reportadas) {
+                globReps = { ...globReps, ...docRep.data().reportadas };
+                localStorage.setItem(repCacheKey, JSON.stringify(globReps));
+            }
+
+            bateriaQuestoes = [];
+            todasAtividadesConcurso.forEach(data => {
+                if (data.cargoId === cargoSelecionado && data.questoes) {
+                    data.questoes.forEach((qItem, idx) => {
+                        const qId = `${data.idOriginal}_${idx}`;
+                        if (globReps[qId]) {
+                            bateriaQuestoes.push({ idQ: qId, ...qItem });
+                        }
+                    });
+                }
+            });
+
+            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_reportadas_session`;
+            const progressoSalvoLocal = localStorage.getItem(cacheProgKey);
+            
+            if (progressoSalvoLocal) {
+                progressoUsuario = JSON.parse(progressoSalvoLocal);
+                if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
+            } else {
+                const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_reportadas_session`));
+                if (docProgresso.exists()) {
+                    progressoUsuario = docProgresso.data();
+                    if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
+                } else {
+                    progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
+                }
+            }
+            
+            localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
+
+            questoesPendentes = bateriaQuestoes.filter(q => !progressoUsuario.resolvidas[q.idQ]);
+            document.getElementById('loader-questoes').style.display = 'none';
+
+            if (bateriaQuestoes.length === 0) {
+                window.showAlertAluno("Lista Vazia", "Você ainda não reportou nenhuma questão deste cargo.", "info");
+                window.abrirDisciplinas();
+            } else if (questoesPendentes.length === 0) {
+                document.getElementById('fim-disciplina').style.display = 'flex';
+                document.getElementById('area-resolucao').style.display = 'none';
+            } else {
+                questoesPendentes = questoesPendentes.sort(() => Math.random() - 0.5);
+                carregarProximaQuestao();
+                document.getElementById('q-concurso-nome').innerText = "REPORTADAS";
+            }
+        } catch (e) { console.error(e); }
     };
 
     window.abrirQuestoesDisciplina = async (disciplina) => {
@@ -484,17 +637,25 @@ window.Router.register('homeconcurseiro', async () => {
         const idQ = questaoAtual.idQ;
         if (!progressoUsuario.favoritas) progressoUsuario.favoritas = {};
         
+        const favCacheKey = `p4f_favs_${userAtual.uid}_${dadosConcurso.id}`;
+        let globFavs = JSON.parse(localStorage.getItem(favCacheKey) || '{}');
+
         if (progressoUsuario.favoritas[idQ]) {
             delete progressoUsuario.favoritas[idQ];
+            delete globFavs[idQ];
             document.getElementById('btn-fav-q').style.color = '#64748b';
         } else {
             progressoUsuario.favoritas[idQ] = true;
+            globFavs[idQ] = true;
             document.getElementById('btn-fav-q').style.color = '#eab308';
         }
         
         const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`;
         localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
         setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`), progressoUsuario, { merge: true });
+
+        localStorage.setItem(favCacheKey, JSON.stringify(globFavs));
+        setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_favs`), { favoritas: globFavs }, { merge: true });
     };
 
     window.abrirModalReporte = () => {
@@ -515,6 +676,14 @@ window.Router.register('homeconcurseiro', async () => {
                 descricao: desc,
                 data: Date.now()
             });
+            
+            const repCacheKey = `p4f_reps_${userAtual.uid}_${dadosConcurso.id}`;
+            let globReps = JSON.parse(localStorage.getItem(repCacheKey) || '{}');
+            globReps[questaoAtual.idQ] = true;
+            localStorage.setItem(repCacheKey, JSON.stringify(globReps));
+            await setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_reps`), { reportadas: globReps }, { merge: true });
+
+            document.getElementById('input-reporte-erro').value = '';
             window.showAlertAluno("Reporte Enviado", "Obrigado por avisar! Nossa equipe vai analisar essa questão.");
         } catch(e) {
             console.error(e);
@@ -573,10 +742,10 @@ window.Router.register('homeconcurseiro', async () => {
                     ${headerQuestaoAdicional}
                 </div>
                 <p style="font-weight: 600; color: #1e293b; font-size: 14px; line-height: 1.6; margin-bottom: 15px;">${questaoAtual.enunciado.replace(/\n/g, '<br>')}</p>
+                <div id="q-explicacao" style="display: none; margin-bottom: 15px; padding: 15px; border-radius: 8px; font-size: 13px; color: #475569; background: #f8fafc; border: 1px dashed #cbd5e1;"></div>
                 <div style="display: grid; gap: 8px;">
                     ${htmlAlternativas}
                 </div>
-                <div id="q-explicacao" style="display: none; margin-top: 15px; padding: 15px; border-radius: 8px; font-size: 13px; color: #475569; background: #f8fafc; border: 1px dashed #cbd5e1;"></div>
             </div>
         `;
 
@@ -915,12 +1084,12 @@ window.Router.register('homeconcurseiro', async () => {
                 <div style="font-size: 60px; color: #10b981; margin-bottom: 20px;"><i class="fa-solid fa-check-double"></i></div>
                 <h2 style="color: #0f172a; font-weight: 900; margin-bottom: 10px;">Parabéns!</h2>
                 <p style="color: #64748b; font-size: 14px; margin-bottom: 30px;">Você já resolveu todas as questões desta disciplina.</p>
-                <button class="btn-hc-primario" onclick="window.irParaView('view-disciplinas')">ESCOLHER OUTRA DISCIPLINA</button>
+                <button class="btn-hc-primario" onclick="window.abrirDisciplinas()">ESCOLHER OUTRA DISCIPLINA</button>
             </div>
 
             <div id="area-resolucao" style="display:none;">
                 <div class="q-header">
-                    <button onclick="window.irParaView('view-disciplinas')" style="background:none; border:none; color:#64748b; font-weight:700; cursor:pointer; font-size:14px; margin-right: 15px;"><i class="fa-solid fa-arrow-left"></i></button>
+                    <button onclick="window.abrirDisciplinas()" style="background:none; border:none; color:#64748b; font-weight:700; cursor:pointer; font-size:14px; margin-right: 15px;"><i class="fa-solid fa-arrow-left"></i></button>
                     <div class="q-tag-concurso" id="q-concurso-nome">PF 2026</div>
                     <div style="flex:1;"></div>
                     <div class="q-progresso-badge" id="q-progresso">1 / 100</div>
