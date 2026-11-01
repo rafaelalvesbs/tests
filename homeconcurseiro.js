@@ -159,13 +159,16 @@ window.Router.register('homeconcurseiro', async () => {
                     cargoSelecionado = cargoSalvoLocal;
                 }
 
+                const badgeCargo = document.getElementById('cargo-atual-badge');
                 if (cargoSelecionado) {
                     window.filtrarDisciplinasPeloCargo();
-                    const badgeCargo = document.getElementById('cargo-atual-badge');
                     if (badgeCargo && cargosDisponiveis[cargoSelecionado]) {
                         badgeCargo.innerHTML = `<i class="fa-solid fa-user-tie" style="margin-right: 8px;"></i>Cargo: ${cargosDisponiveis[cargoSelecionado]}`;
-                        badgeCargo.style.display = 'inline-block';
+                    } else if (badgeCargo) {
+                        badgeCargo.style.display = 'none';
                     }
+                } else if (badgeCargo) {
+                    badgeCargo.style.display = 'none';
                 }
 
                 const qFeedbacks = query(collection(db, "feedbacks_questoes"), where("usuarioId", "==", userAtual.uid), where("lido", "==", false));
@@ -174,12 +177,14 @@ window.Router.register('homeconcurseiro', async () => {
                 snapF.forEach(docF => {
                     meusFeedbacks.push({ id: docF.id, ...docF.data() });
                 });
-            } else {
+           } else {
                 document.getElementById('estado-vazio-concurso').style.display = 'block';
                 document.getElementById('view-boas-vindas').style.display = 'none';
             }
         } catch (e) {
             console.error("Erro ao buscar dados:", e);
+            const badgeCargo = document.getElementById('cargo-atual-badge');
+            if(badgeCargo) badgeCargo.style.display = 'none';
         }
     };
 
@@ -766,21 +771,20 @@ window.Router.register('homeconcurseiro', async () => {
     const carregarProximaQuestao = () => {
         if (questoesPendentes.length === 0) {
             if (disciplinaSelecionada === "FAVORITAS") {
-                document.getElementById('fim-disciplina').style.display = 'flex';
-                document.getElementById('area-resolucao').style.display = 'none';
-                return;
-            }
-            
-            const erradas = bateriaQuestoes.filter(q => progressoUsuario.resolvidas[q.idQ] && !progressoUsuario.resolvidas[q.idQ].acertou);
-            
-            if (erradas.length > 0 && !refazendoErros) {
-                refazendoErros = true;
-                questoesPendentes = erradas.sort(() => Math.random() - 0.5);
-                questoesPendentes.forEach(q => delete progressoUsuario.resolvidas[q.idQ]);
+                questoesPendentes = bateriaQuestoes.slice();
+                if(questoesPendentes.length === 0) return;
             } else {
-                document.getElementById('fim-disciplina').style.display = 'flex';
-                document.getElementById('area-resolucao').style.display = 'none';
-                return;
+                const erradas = bateriaQuestoes.filter(q => progressoUsuario.resolvidas[q.idQ] && !progressoUsuario.resolvidas[q.idQ].acertou);
+                
+                if (erradas.length > 0 && !refazendoErros) {
+                    refazendoErros = true;
+                    questoesPendentes = erradas.sort(() => Math.random() - 0.5);
+                    questoesPendentes.forEach(q => delete progressoUsuario.resolvidas[q.idQ]);
+                } else {
+                    document.getElementById('fim-disciplina').style.display = 'flex';
+                    document.getElementById('area-resolucao').style.display = 'none';
+                    return;
+                }
             }
         }
 
@@ -808,7 +812,11 @@ window.Router.register('homeconcurseiro', async () => {
         const progTotal = ehModoRevisao ? (bateriaQuestoes.length - questoesPendentes.length + 1) : (progressoUsuario.totalFeitas + 1);
         document.getElementById('q-progresso').innerText = `${progTotal} / ${bateriaQuestoes.length}`;
         
-        const numQuestao = progTotal;
+        let numQuestaoVisual = progTotal;
+        if (ehModoRevisao && questaoAtual.idQ) {
+            numQuestaoVisual = parseInt(questaoAtual.idQ.split('_')[1]) + 1;
+        }
+        
         const containerQuestao = document.getElementById('render-questao-aqui');
         const letras = ['A', 'B', 'C', 'D', 'E'];
         
@@ -840,9 +848,6 @@ window.Router.register('homeconcurseiro', async () => {
             displayExp = 'block';
             let textoExp = questaoAtual.explicacao ? questaoAtual.explicacao.replace(/\n/g, '<br>') : `Gabarito Correto: ${questaoAtual.correta.toUpperCase()}`;
             textoExpHtml = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 11px; font-weight: 900; color: #0369a1; background: #e0f2fe; padding: 4px 10px; border-radius: 6px;">EXPLICAÇÃO DO GABARITO</span>
-                </div>
                 <div style="color: #334155; line-height: 1.6; font-size: 14px;">${textoExp}</div>
             `;
         }
@@ -850,7 +855,7 @@ window.Router.register('homeconcurseiro', async () => {
         containerQuestao.innerHTML = `
             <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
                 <div style="margin-bottom: 10px; display: flex; align-items: center;">
-                    <span style="display: inline-block; padding: 2px 10px; background: #0f172a; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800;">QUESTÃO ${numQuestao}</span>
+                    <span style="display: inline-block; padding: 2px 10px; background: #0f172a; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800;">QUESTÃO ${numQuestaoVisual}</span>
                     ${headerQuestaoAdicional}
                 </div>
                 <p style="font-weight: 600; color: #1e293b; font-size: 14px; line-height: 1.6; margin-bottom: 15px;">${questaoAtual.enunciado.replace(/\n/g, '<br>')}</p>
@@ -1262,7 +1267,7 @@ window.Router.register('homeconcurseiro', async () => {
                 <div class="w-icon"><i class="fa-solid fa-graduation-cap"></i></div>
                 <div class="w-title">Olá, ${primeiroNome}!</div>
                 <div class="w-subtitle">Bons estudos hoje! Prepare-se para detonar nas questões.</div>
-                <div id="cargo-atual-badge" style="display: none; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 25px; font-size: 14px; font-weight: 700; color: #38bdf8; border: 1px solid rgba(56,189,248,0.2);"></div>
+                <div id="cargo-atual-badge" style="display: inline-block; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 25px; font-size: 14px; font-weight: 700; color: #38bdf8; border: 1px solid rgba(56,189,248,0.2);"><i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i>Buscando cargo...</div>
                 <button class="btn-hc-primario" onclick="window.iniciarJornada()">INICIAR ESTUDOS <i class="fa-solid fa-arrow-right" style="margin-left: 8px;"></i></button>
             </div>
         </div>
