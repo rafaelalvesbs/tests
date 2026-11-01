@@ -1240,8 +1240,8 @@ window.Router.register('homeconcurseiro', async () => {
                 setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_reps`), { reportadas: globReps }, { merge: true });
             }
 
-            window.buscarDadosIniciais();
             window.abrirDisciplinas();
+            setTimeout(() => { window.buscarDadosIniciais(); }, 1000);
         } catch(e) {
             console.error(e);
         }
