@@ -300,10 +300,15 @@ window.Router.register('homeconcurseiro', async () => {
         try {
             const favCacheKey = `p4f_favs_${userAtual.uid}_${dadosConcurso.id}`;
             let globFavs = JSON.parse(localStorage.getItem(favCacheKey) || '{}');
-            const docFav = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_favs`));
-            if (docFav.exists() && docFav.data().favoritas) {
-                globFavs = { ...globFavs, ...docFav.data().favoritas };
-                localStorage.setItem(favCacheKey, JSON.stringify(globFavs));
+            
+            try {
+                const docFav = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_favs`));
+                if (docFav.exists() && docFav.data().favoritas) {
+                    globFavs = { ...docFav.data().favoritas, ...globFavs };
+                    localStorage.setItem(favCacheKey, JSON.stringify(globFavs));
+                }
+            } catch (e) {
+                console.log("Usando apenas favoritos do cache local.");
             }
 
             bateriaQuestoes = [];
@@ -319,15 +324,7 @@ window.Router.register('homeconcurseiro', async () => {
             });
 
             const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_favoritas_session`;
-            const progressoSalvoLocal = localStorage.getItem(cacheProgKey);
-            
-            if (progressoSalvoLocal) {
-                progressoUsuario = JSON.parse(progressoSalvoLocal);
-                if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
-            } else {
-                progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
-            }
-            
+            progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
             progressoUsuario.favoritas = globFavs;
             localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
 
@@ -341,7 +338,10 @@ window.Router.register('homeconcurseiro', async () => {
                 carregarProximaQuestao();
                 document.getElementById('q-concurso-nome').innerText = "FAVORITAS";
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error(e);
+            document.getElementById('loader-questoes').style.display = 'none';
+        }
     };
 
     window.abrirReportadas = async () => {
@@ -667,20 +667,29 @@ window.Router.register('homeconcurseiro', async () => {
     };
 
     window.abrirModalReporte = () => {
+        if (!questaoAtual) {
+            window.showAlertAluno("Erro", "Nenhuma questão carregada para reportar.", "error");
+            return;
+        }
+        document.getElementById('input-reporte-erro').value = '';
         document.getElementById('modal-reportar-erro').style.display = 'flex';
     };
 
     window.enviarReporte = async () => {
+        if (!questaoAtual) return;
+        
         let desc = document.getElementById('input-reporte-erro').value;
         if (!desc.trim()) desc = 'Questão reportada pelo aluno sem descrição adicional.';
         
         document.getElementById('modal-reportar-erro').style.display = 'none';
         
         try {
-            await setDoc(doc(collection(db, "reportes_questoes")), {
+            const reportId = `${userAtual.uid}_${questaoAtual.idQ}_${Date.now()}`;
+            await setDoc(doc(db, "reportes_questoes", reportId), {
                 usuarioId: userAtual.uid,
                 questaoId: questaoAtual.idQ,
                 concursoId: dadosConcurso.id,
+                disciplina: questaoAtual.originalData ? questaoAtual.originalData.disciplina : disciplinaSelecionada,
                 descricao: desc,
                 data: Date.now()
             });
@@ -689,11 +698,12 @@ window.Router.register('homeconcurseiro', async () => {
             let globReps = JSON.parse(localStorage.getItem(repCacheKey) || '{}');
             globReps[questaoAtual.idQ] = true;
             localStorage.setItem(repCacheKey, JSON.stringify(globReps));
+            
             await setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_reps`), { reportadas: globReps }, { merge: true });
 
-            document.getElementById('input-reporte-erro').value = '';
             window.showAlertAluno("Reporte Enviado", "Obrigado por avisar! Nossa equipe vai analisar essa questão.");
         } catch(e) {
+            window.showAlertAluno("Erro", "Falha ao enviar reporte. Tente novamente.", "error");
             console.error(e);
         }
     };
@@ -1074,6 +1084,22 @@ window.Router.register('homeconcurseiro', async () => {
                 </div>
             </div>
         </div>
+
+        <!-- MODAL REPORTAR ERRO -->
+        <div id="modal-reportar-erro" class="modal-aluno">
+            <div class="modal-aluno-content">
+                <div style="font-size: 35px; color: #cbd5e1; margin-bottom: 10px;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900;">Reportar Problema</h3>
+                <p style="color:#64748b; font-size: 13px; margin-bottom:15px;">Encontrou algum erro na questão? Descreva abaixo para avaliarmos.</p>
+                <textarea id="input-reporte-erro" rows="3" placeholder="Ex: Gabarito errado, questão desatualizada..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; outline: none; resize: none;"></textarea>
+                <div style="display:flex; flex-direction: column; gap:10px;">
+                    <button class="btn-modal-aluno" style="background:#0f172a; margin-top:0;" onclick="window.enviarReporte()">ENVIAR AVISO</button>
+                    <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="this.closest('.modal-aluno').style.display='none'">CANCELAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ESTADO SEM CONCURSO -->
 
         <!-- ESTADO SEM CONCURSO -->
         <div id="estado-vazio-concurso" style="display:none; padding: 40px 20px; text-align:center;">
