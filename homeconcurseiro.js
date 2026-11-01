@@ -263,7 +263,7 @@ window.Router.register('homeconcurseiro', async () => {
         if (temFavoritas) {
             if (!jaAbriuFav) {
                 htmlExtras += `
-                    <div class="card-disciplina" onclick="window.abrirFavoritas()" style="border-color: #eab308; background: #fefce8; margin-top: 12px;">
+                    <div class="card-disciplina" onclick="window.abrirFavoritas()" style="border-color: #eab308; background: #fefce8;">
                         <div class="icone-disc" style="background: #eab308; color: #fff;"><i class="fa-solid fa-star"></i></div>
                         <div class="nome-disc" style="color: #ca8a04;">QUESTÕES FAVORITAS</div>
                         <i class="fa-solid fa-chevron-right seta-disc" style="color: #eab308;"></i>
@@ -271,7 +271,7 @@ window.Router.register('homeconcurseiro', async () => {
                 `;
             } else {
                 htmlExtras += `
-                    <div class="card-disciplina" onclick="window.abrirFavoritas()" style="margin-top: 12px;">
+                    <div class="card-disciplina" onclick="window.abrirFavoritas()">
                         <div class="icone-disc" style="background: #fefce8; color: #ca8a04;"><i class="fa-solid fa-star"></i></div>
                         <div class="nome-disc">QUESTÕES FAVORITAS</div>
                         <i class="fa-solid fa-chevron-right seta-disc"></i>
@@ -282,7 +282,7 @@ window.Router.register('homeconcurseiro', async () => {
 
         if (temReportadas) {
             htmlExtras += `
-                <div class="card-disciplina" onclick="window.abrirReportadas()" style="border-color: #ef4444; background: #fef2f2; margin-top: 12px;">
+                <div class="card-disciplina" onclick="window.abrirReportadas()" style="border-color: #ef4444; background: #fef2f2;">
                     <div class="icone-disc" style="background: #ef4444; color: #fff;"><i class="fa-solid fa-triangle-exclamation"></i></div>
                     <div class="nome-disc" style="color: #b91c1c;">QUESTÕES REPORTADAS</div>
                     <i class="fa-solid fa-chevron-right seta-disc" style="color: #ef4444;"></i>
@@ -292,7 +292,7 @@ window.Router.register('homeconcurseiro', async () => {
 
         if (meusFeedbacks.length > 0) {
             htmlExtras += `
-                <div class="card-disciplina" onclick="window.abrirFeedbacksAluno()" style="border-color: #10b981; background: #ecfdf5; margin-top: 12px;">
+                <div class="card-disciplina" onclick="window.abrirFeedbacksAluno()" style="border-color: #10b981; background: #ecfdf5;">
                     <div class="icone-disc" style="background: #10b981; color: #fff;"><i class="fa-solid fa-comment-dots"></i></div>
                     <div class="nome-disc" style="color: #065f46;">VOCÊ TEM ${meusFeedbacks.length} FEEDBACK(S)!</div>
                     <i class="fa-solid fa-chevron-right seta-disc" style="color: #10b981;"></i>
@@ -920,7 +920,7 @@ window.Router.register('homeconcurseiro', async () => {
 
     window.abrirModoRevisao = (tipo) => {
         const chavesResolvidas = Object.keys(progressoUsuario.resolvidas || {});
-        if (chavesResolvidas.length === 0) {
+        if (chavesResolvidas.length === 0 && tipo !== 'grafico') {
             window.showAlertAluno("Aviso", "Nenhuma questão resolvida ainda.", "info");
             return;
         }
@@ -929,26 +929,81 @@ window.Router.register('homeconcurseiro', async () => {
             const containerLista = document.getElementById('lista-revisao-conteudo');
             const tituloRevisao = document.getElementById('titulo-revisao');
             tituloRevisao.innerText = 'Seu Aproveitamento';
-            const pctAcerto = Math.round((progressoUsuario.acertos / progressoUsuario.totalFeitas) * 100) || 0;
-            const pctErro = 100 - pctAcerto;
-            
-            containerLista.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; padding:30px 10px;">
-                    <div style="width: 200px; height: 200px; border-radius: 50%; background: conic-gradient(#10b981 0% ${pctAcerto}%, #ef4444 ${pctAcerto}% 100%); margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);"></div>
-                    <div style="display:flex; gap:30px; width:100%; justify-content:center;">
-                        <div style="text-align:center;">
-                            <div style="width:16px; height:16px; background:#10b981; border-radius:4px; display:inline-block; margin-bottom:5px;"></div>
-                            <div style="font-size:18px; font-weight:900; color:#0f172a;">${pctAcerto}%</div>
-                            <div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase;">Acertos (${progressoUsuario.acertos})</div>
-                        </div>
-                        <div style="text-align:center;">
-                            <div style="width:16px; height:16px; background:#ef4444; border-radius:4px; display:inline-block; margin-bottom:5px;"></div>
-                            <div style="font-size:18px; font-weight:900; color:#0f172a;">${pctErro}%</div>
-                            <div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase;">Erros (${progressoUsuario.erros})</div>
+
+            window.renderizarGraficoFiltrado = (filtroD) => {
+                let tAcertos = 0;
+                let tErros = 0;
+                let tFeitas = 0;
+                
+                if (filtroD === 'TODAS') {
+                    const chavesBuscar = [...disciplinasAtuais, 'MISTURADO'];
+                    chavesBuscar.forEach(cx => {
+                        const str = localStorage.getItem(`p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${cx}`);
+                        if (str) {
+                            const obj = JSON.parse(str);
+                            tAcertos += (obj.acertos || 0);
+                            tErros += (obj.erros || 0);
+                            tFeitas += (obj.totalFeitas || 0);
+                        }
+                    });
+                } else {
+                    const str = localStorage.getItem(`p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${filtroD}`);
+                    if (str) {
+                        const obj = JSON.parse(str);
+                        tAcertos = (obj.acertos || 0);
+                        tErros = (obj.erros || 0);
+                        tFeitas = (obj.totalFeitas || 0);
+                    }
+                }
+
+                const boxG = document.getElementById('container-desenho-grafico');
+                if(!boxG) return;
+                
+                if(tFeitas === 0) {
+                    boxG.innerHTML = '<p style="text-align:center; color:#64748b; font-size:14px; padding:20px;">Nenhuma questão resolvida neste filtro.</p>';
+                    return;
+                }
+
+                const pctA = Math.round((tAcertos / tFeitas) * 100);
+                const pctE = 100 - pctA;
+                
+                boxG.innerHTML = `
+                    <div style="display:flex; flex-direction:column; align-items:center; padding:20px 10px;">
+                        <div style="width: 200px; height: 200px; border-radius: 50%; background: conic-gradient(#10b981 0% ${pctA}%, #ef4444 ${pctA}% 100%); margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);"></div>
+                        <div style="display:flex; gap:30px; width:100%; justify-content:center;">
+                            <div style="text-align:center;">
+                                <div style="width:16px; height:16px; background:#10b981; border-radius:4px; display:inline-block; margin-bottom:5px;"></div>
+                                <div style="font-size:18px; font-weight:900; color:#0f172a;">${pctA}%</div>
+                                <div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase;">Acertos (${tAcertos})</div>
+                            </div>
+                            <div style="text-align:center;">
+                                <div style="width:16px; height:16px; background:#ef4444; border-radius:4px; display:inline-block; margin-bottom:5px;"></div>
+                                <div style="font-size:18px; font-weight:900; color:#0f172a;">${pctE}%</div>
+                                <div style="font-size:11px; color:#64748b; font-weight:700; text-transform:uppercase;">Erros (${tErros})</div>
+                            </div>
                         </div>
                     </div>
+                `;
+            };
+
+            let opts = '<option value="TODAS">TODAS AS DISCIPLINAS</option>';
+            disciplinasAtuais.forEach(d => {
+                const sel = (disciplinaSelecionada === d) ? 'selected' : '';
+                opts += `<option value="${d}" ${sel}>${d}</option>`;
+            });
+            
+            containerLista.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size:12px; font-weight:700; color:#64748b; display:block; margin-bottom:8px;">Filtrar Aproveitamento:</label>
+                    <select id="sel-filtro-grafico" onchange="window.renderizarGraficoFiltrado(this.value)" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; outline: none; background: #fff;">
+                        ${opts}
+                    </select>
                 </div>
+                <div id="container-desenho-grafico"></div>
             `;
+            
+            const inicioFiltro = (disciplinasAtuais.includes(disciplinaSelecionada)) ? disciplinaSelecionada : 'TODAS';
+            window.renderizarGraficoFiltrado(inicioFiltro);
             window.irParaView('view-revisao');
         } else if (tipo === 'erros') {
             window.refazerTodasErradas();
