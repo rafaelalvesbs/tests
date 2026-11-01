@@ -1149,12 +1149,12 @@ window.Router.register('homeconcurseiro', async () => {
         .exp-vermelha { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Placar */
-        .placar-stats { display: flex; justify-content: space-around; gap: 8px; background: #fff; padding: 15px 15px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px; flex-wrap: nowrap; }
-        .stat-item { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; }
-        .stat-valor { font-size: 18px; font-weight: 900; color: #0f172a; }
-        .stat-label { font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; margin-top: 4px; }
-        .stat-acerto-color { color: #10b981; }
+        /* Placar em Botoes */
+        .placar-stats { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 25px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 5px; }
+        .stat-btn { flex: 1; min-width: 70px; background: #fff; border: 1px solid #e2e8f0; padding: 12px 5px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .stat-btn:hover { border-color: #cbd5e1; transform: translateY(-2px); }
+        .stat-valor { font-size: 16px; font-weight: 900; color: #0f172a; }
+        .stat-label { font-size: 9px; text-transform: uppercase; color: #64748b; font-weight: 800; margin-top: 4px; }
 
         /* Botão Próximo Desktop */
         .btn-proxima-desk { display: none; background: #38bdf8; color: #0f172a; border: none; padding: 16px 20px; border-radius: 14px; font-size: 15px; font-weight: 800; cursor: pointer; width: 100%; box-shadow: 0 4px 15px rgba(56,189,248,0.2); transition: 0.2s; }
@@ -1373,22 +1373,22 @@ window.Router.register('homeconcurseiro', async () => {
                 <div id="render-questao-aqui"></div>
 
                 <div class="placar-stats">
-                    <div class="stat-item">
-                        <div class="stat-valor" id="stat-feitas">0</div>
-                        <div class="stat-label">Resolvidas</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-valor" id="stat-acertos" style="color: #10b981;">0</div>
-                        <div class="stat-label">Acertos</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-valor" id="stat-erros" style="color: #ef4444;">0</div>
-                        <div class="stat-label">Erros</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-valor" id="stat-pct" style="color: #3b82f6;">0%</div>
-                        <div class="stat-label">Aproveitamento</div>
-                    </div>
+                    <button class="stat-btn" onclick="window.abrirModoRevisao('todas')">
+                        <span class="stat-valor" id="stat-feitas">0</span>
+                        <span class="stat-label">Resolvidas</span>
+                    </button>
+                    <button class="stat-btn" onclick="window.abrirModoRevisao('acertos')">
+                        <span class="stat-valor" id="stat-acertos" style="color: #10b981;">0</span>
+                        <span class="stat-label" style="color: #10b981;">Acertos</span>
+                    </button>
+                    <button class="stat-btn" onclick="window.abrirModoRevisao('erros')">
+                        <span class="stat-valor" id="stat-erros" style="color: #ef4444;">0</span>
+                        <span class="stat-label" style="color: #ef4444;">Erros</span>
+                    </button>
+                    <button class="stat-btn" onclick="window.abrirModoRevisao('grafico')">
+                        <span class="stat-valor" id="stat-pct" style="color: #3b82f6;">0%</span>
+                        <span class="stat-label" style="color: #3b82f6;">Gráfico</span>
+                    </button>
                 </div>
 
                 <button class="btn-proxima-desk" onclick="window.avancarPosResposta()">PRÓXIMA QUESTÃO <i class="fa-solid fa-arrow-right"></i></button>
