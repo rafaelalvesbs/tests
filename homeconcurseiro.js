@@ -457,33 +457,6 @@ window.Router.register('homeconcurseiro', async () => {
         } catch (e) { console.error(e); }
     };
 
-    window.toggleZerarProgresso = async () => {
-        const btn = document.getElementById('btn-zerar-prog');
-        const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`;
-        const refDoc = doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`);
-
-        if (!backupProgresso) {
-            backupProgresso = JSON.parse(JSON.stringify(progressoUsuario));
-            progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
-            btn.style.color = '#ef4444';
-            refazendoErros = false;
-        } else {
-            progressoUsuario = JSON.parse(JSON.stringify(backupProgresso));
-            backupProgresso = null;
-            btn.style.color = '#64748b';
-            refazendoErros = false;
-        }
-        
-        questoesPendentes = bateriaQuestoes.filter(q => !progressoUsuario.resolvidas[q.idQ]);
-        localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
-        setDoc(refDoc, progressoUsuario, { merge: true });
-        
-        if (questoesPendentes.length > 0) {
-            questoesPendentes = questoesPendentes.sort(() => Math.random() - 0.5);
-        }
-        carregarProximaQuestao();
-    };
-
     window.toggleTimer = () => {
         const btn = document.getElementById('btn-timer');
         const display = document.getElementById('display-timer');
@@ -503,20 +476,6 @@ window.Router.register('homeconcurseiro', async () => {
                 const s = (tempoSegundos % 60).toString().padStart(2, '0');
                 display.innerText = `${m}:${s}`;
             }, 1000);
-        }
-    };
-
-    window.toggleFoco = () => {
-        modoFocoAtivo = !modoFocoAtivo;
-        const btn = document.getElementById('btn-foco');
-        const elementsToHide = document.querySelectorAll('.placar-stats, .q-header, .btn-proxima-desk');
-        
-        if (modoFocoAtivo) {
-            btn.style.color = '#8b5cf6';
-            elementsToHide.forEach(el => el.style.display = 'none');
-        } else {
-            btn.style.color = '#64748b';
-            elementsToHide.forEach(el => el.style.display = '');
         }
     };
 
@@ -993,11 +952,9 @@ window.Router.register('homeconcurseiro', async () => {
                     <div class="q-progresso-badge" id="q-progresso">1 / 100</div>
                 </div>
 
-                <div class="q-actions" style="flex-wrap: wrap;">
+                <div class="q-actions">
                     <div id="display-timer" style="display:none; align-items:center; background:#fff; border:1px solid #e2e8f0; padding:0 12px; border-radius:10px; color:#f59e0b; font-weight:800; font-size:14px; letter-spacing:1px; height:40px;">00:00</div>
                     <button id="btn-timer" class="btn-acao-q" onclick="window.toggleTimer()" title="Cronômetro" style="color:#64748b;"><i class="fa-solid fa-clock"></i></button>
-                    <button id="btn-foco" class="btn-acao-q" onclick="window.toggleFoco()" title="Modo Foco" style="color:#64748b;"><i class="fa-solid fa-expand"></i></button>
-                    <button id="btn-zerar-prog" class="btn-acao-q" onclick="window.toggleZerarProgresso()" title="Zerar / Restaurar Progresso" style="color:#64748b;"><i class="fa-solid fa-rotate-left"></i></button>
                     <div style="width: 2px; background: #e2e8f0; margin: 0 4px;"></div>
                     <button class="btn-acao-q" onclick="window.abrirModalFiltroDisciplina()" title="Filtrar por Disciplina" style="color:#3b82f6;"><i class="fa-solid fa-shuffle"></i></button>
                     <button class="btn-acao-q" onclick="window.abrirModalFiltroAssunto()" title="Filtrar por Assunto" style="color:#8b5cf6;"><i class="fa-solid fa-filter"></i></button>
