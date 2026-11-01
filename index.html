@@ -162,13 +162,14 @@
     sideInfo.innerHTML = `Painel Master <div id="data-atual-sidebar" class="data-atual"></div>`;
     document.getElementById('mobile-logo-text').innerText = 'Painel Master';
     
-    const menu = document.getElementById('main-menu');
+const menu = document.getElementById('main-menu');
     menu.innerHTML = `
         <li class="menu-item"><a href="#" onclick="handleNav('home')"><i class="fa-solid fa-chart-pie"></i> Início</a></li>
         <li class="menu-item"><a href="#" onclick="handleNav('concursos')"><i class="fa-solid fa-landmark"></i> Concursos</a></li>
         <li class="menu-item"><a href="#" onclick="handleNav('influencer')"><i class="fa-solid fa-users-viewfinder"></i> Influenciadores</a></li>
         <li class="menu-item"><a href="#" onclick="handleNav('concurseiros')"><i class="fa-solid fa-users"></i> Concurseiros</a></li>
         <li class="menu-item"><a href="#" onclick="handleNav('questoesmaster')"><i class="fa-solid fa-book"></i> Questões</a></li>
+        <li class="menu-item"><a href="#" onclick="handleNav('erros')"><i class="fa-solid fa-triangle-exclamation"></i> Erros Reportados</a></li>
         <li class="menu-item"><a href="#" onclick="handleNav('faturamentodomaster')"><i class="fa-solid fa-wallet"></i> Faturamento</a></li>
         <li class="menu-item"><a href="#" onclick="handleNav('banco')"><i class="fa-solid fa-database"></i> Banco de Questões</a></li>
         <li class="menu-item btn-sair" style="margin-top: 15px;">
