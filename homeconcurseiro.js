@@ -806,10 +806,13 @@ window.Router.register('homeconcurseiro', async () => {
             </div>
         `;
 
+        const placar = document.querySelector('.placar-stats');
         if (!ehModoRevisao) {
+            if (placar) placar.style.display = 'flex';
             atualizarPlacarEstatisticas();
         } else {
-            document.querySelector('.placar-stats').style.display = 'none';
+            if (placar) placar.style.display = 'none';
+            questoesPendentes.shift();
         }
     };
 
