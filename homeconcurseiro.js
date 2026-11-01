@@ -375,10 +375,14 @@ window.Router.register('homeconcurseiro', async () => {
         try {
             const repCacheKey = `p4f_reps_${userAtual.uid}_${dadosConcurso.id}`;
             let globReps = JSON.parse(localStorage.getItem(repCacheKey) || '{}');
-            const docRep = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_reps`));
-            if (docRep.exists() && docRep.data().reportadas) {
-                globReps = { ...globReps, ...docRep.data().reportadas };
-                localStorage.setItem(repCacheKey, JSON.stringify(globReps));
+            try {
+                const docRep = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_reps`));
+                if (docRep.exists() && docRep.data().reportadas) {
+                    globReps = { ...docRep.data().reportadas, ...globReps };
+                    localStorage.setItem(repCacheKey, JSON.stringify(globReps));
+                }
+            } catch (e) {
+                console.log("Usando cache local.");
             }
 
             bateriaQuestoes = [];
@@ -387,45 +391,30 @@ window.Router.register('homeconcurseiro', async () => {
                     data.questoes.forEach((qItem, idx) => {
                         const qId = `${data.idOriginal}_${idx}`;
                         if (globReps[qId]) {
-                            bateriaQuestoes.push({ idQ: qId, ...qItem });
+                            bateriaQuestoes.push({ idQ: qId, ...qItem, originalData: data });
                         }
                     });
                 }
             });
 
             const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_reportadas_session`;
-            const progressoSalvoLocal = localStorage.getItem(cacheProgKey);
-            
-            if (progressoSalvoLocal) {
-                progressoUsuario = JSON.parse(progressoSalvoLocal);
-                if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
-            } else {
-                const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_reportadas_session`));
-                if (docProgresso.exists()) {
-                    progressoUsuario = docProgresso.data();
-                    if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
-                } else {
-                    progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
-                }
-            }
-            
+            progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
             localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
 
-            questoesPendentes = bateriaQuestoes.filter(q => !progressoUsuario.resolvidas[q.idQ]);
+            questoesPendentes = bateriaQuestoes.slice();
             document.getElementById('loader-questoes').style.display = 'none';
 
             if (bateriaQuestoes.length === 0) {
                 window.showAlertAluno("Lista Vazia", "Você ainda não reportou nenhuma questão deste cargo.", "info");
                 window.abrirDisciplinas();
-            } else if (questoesPendentes.length === 0) {
-                document.getElementById('fim-disciplina').style.display = 'flex';
-                document.getElementById('area-resolucao').style.display = 'none';
             } else {
-                questoesPendentes = questoesPendentes.sort(() => Math.random() - 0.5);
                 carregarProximaQuestao();
                 document.getElementById('q-concurso-nome').innerText = "REPORTADAS";
             }
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error(e);
+            document.getElementById('loader-questoes').style.display = 'none';
+        }
     };
 
     window.abrirQuestoesDisciplina = async (disciplina) => {
@@ -689,17 +678,46 @@ window.Router.register('homeconcurseiro', async () => {
         setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_favs`), { favoritas: globFavs }, { merge: true });
     };
 
+    window.senhaCaptchaGerada = "";
+
+    window.gerarSenhaCaptcha = () => {
+        const min = "abcdefghijklmnopqrstuvwxyz";
+        const mai = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const num = "0123456789";
+        let temp = [
+            min[Math.floor(Math.random() * min.length)],
+            mai[Math.floor(Math.random() * mai.length)],
+            min[Math.floor(Math.random() * min.length)],
+            mai[Math.floor(Math.random() * mai.length)],
+            num[Math.floor(Math.random() * num.length)],
+            num[Math.floor(Math.random() * num.length)],
+            num[Math.floor(Math.random() * num.length)],
+            num[Math.floor(Math.random() * num.length)]
+        ];
+        temp.sort(() => Math.random() - 0.5);
+        return temp.join('');
+    };
+
     window.abrirModalReporte = () => {
         if (!questaoAtual) {
             window.showAlertAluno("Erro", "Nenhuma questão carregada para reportar.", "error");
             return;
         }
+        
+        window.senhaCaptchaGerada = window.gerarSenhaCaptcha();
+        document.getElementById('senha-mostrada-captcha').innerText = window.senhaCaptchaGerada;
+
+        document.getElementById('rep-q1').value = '';
+        document.getElementById('rep-q2').value = '';
+        document.getElementById('rep-q3').value = '';
+        document.getElementById('rep-q4').value = '';
         document.getElementById('rep-form-desc').value = '';
         document.getElementById('rep-form-nome').value = '';
         document.getElementById('rep-form-tel').value = '';
         document.getElementById('rep-form-email').value = '';
         document.getElementById('rep-form-senha').value = '';
         document.getElementById('rep-form-senha-conf').value = '';
+        
         document.getElementById('modal-reportar-erro').style.display = 'flex';
     };
 
@@ -723,18 +741,12 @@ window.Router.register('homeconcurseiro', async () => {
         }
 
         if(senha !== senhaConf) {
-            window.showAlertAluno("Erro de Segurança", "As senhas de segurança não coincidem.", "error");
+            window.showAlertAluno("Erro de Segurança", "As senhas digitadas não coincidem.", "error");
             return;
         }
 
-        const regexSenha = /^(?=(?:[^A-Za-z]*[A-Za-z]){4})(?=(?:\D*\d){4})[A-Za-z\d]{8}$/;
-        let tempSenhaStr = senha.replace(/[^a-zA-Z0-9]/g, '');
-        let letrasMaiusculas = (tempSenhaStr.match(/[A-Z]/g) || []).length;
-        let letrasMinusculas = (tempSenhaStr.match(/[a-z]/g) || []).length;
-        let numeros = (tempSenhaStr.match(/[0-9]/g) || []).length;
-
-        if (tempSenhaStr.length !== 8 || letrasMaiusculas === 0 || letrasMinusculas === 0 || (letrasMaiusculas + letrasMinusculas) !== 4 || numeros !== 4) {
-            window.showAlertAluno("Senha Inválida", "A senha de verificação precisa ter exatos 8 caracteres misturados: 4 letras (ao menos 1 maiúscula e 1 minúscula) e 4 números.", "error");
+        if (senha !== window.senhaCaptchaGerada) {
+            window.showAlertAluno("Senha Inválida", "A senha digitada não confere com o código de segurança mostrado no quadro.", "error");
             return;
         }
 
@@ -769,8 +781,10 @@ window.Router.register('homeconcurseiro', async () => {
     };
 
     const carregarProximaQuestao = () => {
+        const ehModoRevisao = (disciplinaSelecionada === "FAVORITAS" || disciplinaSelecionada === "REPORTADAS");
+
         if (questoesPendentes.length === 0) {
-            if (disciplinaSelecionada === "FAVORITAS") {
+            if (ehModoRevisao) {
                 questoesPendentes = bateriaQuestoes.slice();
                 if(questoesPendentes.length === 0) return;
             } else {
@@ -790,13 +804,17 @@ window.Router.register('homeconcurseiro', async () => {
 
         questaoRespondidaAgora = false;
         questaoAtual = questoesPendentes[0];
-        const ehModoRevisao = disciplinaSelecionada === "FAVORITAS";
         
         if (ehModoRevisao) questaoRespondidaAgora = true;
         
         document.getElementById('fim-disciplina').style.display = 'none';
         document.getElementById('area-resolucao').style.display = 'block';
-        document.getElementById('q-concurso-nome').innerText = ehModoRevisao ? "FAVORITAS" : dadosConcurso.titulo;
+        
+        if (ehModoRevisao) {
+            document.getElementById('q-concurso-nome').innerText = disciplinaSelecionada;
+        } else {
+            document.getElementById('q-concurso-nome').innerText = dadosConcurso.titulo;
+        }
         
         const favIconColor = (progressoUsuario.favoritas && progressoUsuario.favoritas[questaoAtual.idQ]) ? '#eab308' : '#64748b';
         const btnFav = document.getElementById('btn-fav-q');
@@ -1150,8 +1168,8 @@ window.Router.register('homeconcurseiro', async () => {
         }
 
         /* Loader */
-        .loader-q { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 0; }
-        .spinner-q { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid #0f172a; border-radius: 50%; animation: spinQ 0.8s linear infinite; margin-bottom: 15px; }
+        .loader-q { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; }
+        .spinner-q { width: 50px; height: 50px; border: 4px solid #e2e8f0; border-top: 4px solid #0f172a; border-radius: 50%; animation: spinQ 0.8s linear infinite; }
         @keyframes spinQ { to { transform: rotate(360deg); } }
         @keyframes pageSwipeOut { 0% { transform: translateX(0) scale(1) rotateY(0); opacity: 1; } 100% { transform: translateX(-100%) scale(0.95) rotateY(-20deg); opacity: 0.3; } }
         @keyframes pageSwipeIn { 0% { transform: translateX(100%) scale(0.95) rotateY(20deg); opacity: 0.3; } 100% { transform: translateX(0) scale(1) rotateY(0); opacity: 1; } }
@@ -1240,9 +1258,14 @@ window.Router.register('homeconcurseiro', async () => {
                     <input type="email" id="rep-form-email" placeholder="E-mail de Contato" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 8px; outline: none;">
                     <input type="tel" id="rep-form-tel" placeholder="Telefone com DDD" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 15px; outline: none;">
 
-                    <label style="font-size: 11px; font-weight: 700; color: #ef4444; margin-bottom: 5px; display: block;">Senha de Autenticação para Reporte (8 caracteres, sendo 4 letras min./maiúsculas e 4 números):</label>
-                    <input type="password" id="rep-form-senha" placeholder="Digite a senha..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 8px; outline: none;">
-                    <input type="password" id="rep-form-senha-conf" placeholder="Confirme a senha..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none;">
+                    <div style="background:#f8fafc; padding:15px; border-radius:10px; border:2px dashed #ef4444; margin-bottom:15px; text-align:center;">
+                        <span style="font-size: 11px; font-weight: 800; color: #ef4444; display: block; margin-bottom: 5px; text-transform: uppercase;">CÓDIGO DE SEGURANÇA</span>
+                        <div id="senha-mostrada-captcha" style="font-size: 24px; font-family: monospace; font-weight: 900; color: #0f172a; letter-spacing: 5px; margin-bottom: 10px;"></div>
+                        <p style="font-size: 11px; color: #64748b; margin-bottom: 0;">Copie o código exato acima para validar o envio.</p>
+                    </div>
+
+                    <input type="text" id="rep-form-senha" placeholder="Digite o código de segurança..." autocomplete="off" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 8px; outline: none; font-weight:bold; text-align:center;">
+                    <input type="text" id="rep-form-senha-conf" placeholder="Confirme o código de segurança..." autocomplete="off" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none; font-weight:bold; text-align:center;">
                 </div>
 
                 <div style="display:flex; flex-direction: column; gap:10px;">
@@ -1315,7 +1338,6 @@ window.Router.register('homeconcurseiro', async () => {
         <div id="view-questoes" class="view-concurseiro">
             <div id="loader-questoes" class="loader-q" style="display:none;">
                 <div class="spinner-q"></div>
-                <div style="color:#64748b; font-weight:700; font-size:12px;">Preparando questões...</div>
             </div>
 
             <div id="fim-disciplina" style="display:none; flex-direction:column; align-items:center; text-align:center; padding: 40px 10px;">
