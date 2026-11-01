@@ -312,7 +312,7 @@ window.Router.register('homeconcurseiro', async () => {
                     data.questoes.forEach((qItem, idx) => {
                         const qId = `${data.idOriginal}_${idx}`;
                         if (globFavs[qId]) {
-                            bateriaQuestoes.push({ idQ: qId, ...qItem });
+                            bateriaQuestoes.push({ idQ: qId, ...qItem, originalData: data });
                         }
                     });
                 }
@@ -325,29 +325,19 @@ window.Router.register('homeconcurseiro', async () => {
                 progressoUsuario = JSON.parse(progressoSalvoLocal);
                 if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
             } else {
-                const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_favoritas_session`));
-                if (docProgresso.exists()) {
-                    progressoUsuario = docProgresso.data();
-                    if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
-                } else {
-                    progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
-                }
+                progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
             }
             
             progressoUsuario.favoritas = globFavs;
             localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
 
-            questoesPendentes = bateriaQuestoes.filter(q => !progressoUsuario.resolvidas[q.idQ]);
+            questoesPendentes = bateriaQuestoes.slice();
             document.getElementById('loader-questoes').style.display = 'none';
 
             if (bateriaQuestoes.length === 0) {
                 window.showAlertAluno("Lista Vazia", "Você ainda não favoritou nenhuma questão deste cargo.", "info");
                 window.abrirDisciplinas();
-            } else if (questoesPendentes.length === 0) {
-                document.getElementById('fim-disciplina').style.display = 'flex';
-                document.getElementById('area-resolucao').style.display = 'none';
             } else {
-                questoesPendentes = questoesPendentes.sort(() => Math.random() - 0.5);
                 carregarProximaQuestao();
                 document.getElementById('q-concurso-nome').innerText = "FAVORITAS";
             }
@@ -709,6 +699,12 @@ window.Router.register('homeconcurseiro', async () => {
 
     const carregarProximaQuestao = () => {
         if (questoesPendentes.length === 0) {
+            if (disciplinaSelecionada === "FAVORITAS") {
+                document.getElementById('fim-disciplina').style.display = 'flex';
+                document.getElementById('area-resolucao').style.display = 'none';
+                return;
+            }
+            
             const erradas = bateriaQuestoes.filter(q => progressoUsuario.resolvidas[q.idQ] && !progressoUsuario.resolvidas[q.idQ].acertou);
             
             if (erradas.length > 0 && !refazendoErros) {
@@ -724,33 +720,67 @@ window.Router.register('homeconcurseiro', async () => {
 
         questaoRespondidaAgora = false;
         questaoAtual = questoesPendentes[0];
+        const ehModoRevisao = disciplinaSelecionada === "FAVORITAS";
+        
+        if (ehModoRevisao) questaoRespondidaAgora = true;
         
         document.getElementById('fim-disciplina').style.display = 'none';
         document.getElementById('area-resolucao').style.display = 'block';
-        document.getElementById('q-concurso-nome').innerText = dadosConcurso.titulo;
+        document.getElementById('q-concurso-nome').innerText = ehModoRevisao ? "FAVORITAS" : dadosConcurso.titulo;
         
         const favIconColor = (progressoUsuario.favoritas && progressoUsuario.favoritas[questaoAtual.idQ]) ? '#eab308' : '#64748b';
         const btnFav = document.getElementById('btn-fav-q');
         if (btnFav) btnFav.style.color = favIconColor;
         
         let headerQuestaoAdicional = '';
-        if (refazendoErros) {
+        if (ehModoRevisao) {
+            let descDisc = questaoAtual.originalData ? questaoAtual.originalData.disciplina : '';
+            headerQuestaoAdicional = `<span style="display: inline-block; padding: 2px 10px; background: #eab308; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800; margin-left: 8px;">REVISÃO DE FAVORITA - ${descDisc}</span>`;
+        } else if (refazendoErros) {
             headerQuestaoAdicional = `<span style="display: inline-block; padding: 2px 10px; background: #ef4444; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800; margin-left: 8px;">REFAZENDO ERROS</span>`;
         }
 
-        document.getElementById('q-progresso').innerText = `${progressoUsuario.totalFeitas + 1} / ${bateriaQuestoes.length}`;
+        const progTotal = ehModoRevisao ? (bateriaQuestoes.length - questoesPendentes.length + 1) : (progressoUsuario.totalFeitas + 1);
+        document.getElementById('q-progresso').innerText = `${progTotal} / ${bateriaQuestoes.length}`;
         
-        const numQuestao = progressoUsuario.totalFeitas + 1;
+        const numQuestao = progTotal;
         const containerQuestao = document.getElementById('render-questao-aqui');
         const letras = ['A', 'B', 'C', 'D', 'E'];
         
-        let htmlAlternativas = letras.filter(opt => questaoAtual.opcoes[opt]).map(opt => `
-            <div id="alt-${opt}" onclick="window.responderQuestao('${opt}')" style="position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; font-size: 13px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; transition: 0.2s;">
-                <span class="alt-letra" style="font-weight: 800; color: #64748b; width: 20px;">${opt})</span>
-                <span class="alt-texto" style="color: #334155; font-weight: 500; transition: 0.2s;">${questaoAtual.opcoes[opt]}</span>
-                <i class="fa-solid fa-circle-check alt-icone" style="margin-left: auto; color: transparent; transition: 0.2s;"></i>
-            </div>
-        `).join('');
+        let htmlAlternativas = letras.filter(opt => questaoAtual.opcoes[opt]).map(opt => {
+            let estilonExtra = "";
+            let iconeExtra = `<i class="fa-solid fa-circle-check alt-icone" style="margin-left: auto; color: transparent; transition: 0.2s;"></i>`;
+            
+            if (ehModoRevisao) {
+                if (opt === questaoAtual.correta.toUpperCase()) {
+                    estilonExtra = "border: 1px solid #10b981; background: #ecfdf5;";
+                    iconeExtra = `<i class="fa-solid fa-circle-check alt-icone" style="margin-left: auto; color: #10b981;"></i>`;
+                } else {
+                    estilonExtra = "opacity: 0.7; cursor: default;";
+                }
+            }
+            
+            return `
+                <div id="alt-${opt}" onclick="${ehModoRevisao ? '' : `window.responderQuestao('${opt}')`}" style="position: relative; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; font-size: 13px; border: 1px solid #cbd5e1; background: #fff; cursor: ${ehModoRevisao ? 'default' : 'pointer'}; transition: 0.2s; ${estilonExtra}">
+                    <span class="alt-letra" style="font-weight: 800; color: ${ehModoRevisao && opt === questaoAtual.correta.toUpperCase() ? '#10b981' : '#64748b'}; width: 20px;">${opt})</span>
+                    <span class="alt-texto" style="color: ${ehModoRevisao && opt === questaoAtual.correta.toUpperCase() ? '#065f46' : '#334155'}; font-weight: ${ehModoRevisao && opt === questaoAtual.correta.toUpperCase() ? '700' : '500'};">${questaoAtual.opcoes[opt]}</span>
+                    ${iconeExtra}
+                </div>
+            `;
+        }).join('');
+
+        let displayExp = 'none';
+        let textoExpHtml = '';
+        if (ehModoRevisao) {
+            displayExp = 'block';
+            let textoExp = questaoAtual.explicacao ? questaoAtual.explicacao.replace(/\n/g, '<br>') : `Gabarito Correto: ${questaoAtual.correta.toUpperCase()}`;
+            textoExpHtml = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 11px; font-weight: 900; color: #0369a1; background: #e0f2fe; padding: 4px 10px; border-radius: 6px;">EXPLICAÇÃO DO GABARITO</span>
+                </div>
+                <div style="color: #334155; line-height: 1.6; font-size: 14px;">${textoExp}</div>
+            `;
+        }
 
         containerQuestao.innerHTML = `
             <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
@@ -759,14 +789,18 @@ window.Router.register('homeconcurseiro', async () => {
                     ${headerQuestaoAdicional}
                 </div>
                 <p style="font-weight: 600; color: #1e293b; font-size: 14px; line-height: 1.6; margin-bottom: 15px;">${questaoAtual.enunciado.replace(/\n/g, '<br>')}</p>
-                <div id="q-explicacao" style="display: none; margin-bottom: 15px; padding: 15px; border-radius: 8px; font-size: 13px; color: #475569; background: #f8fafc; border: 1px dashed #cbd5e1;"></div>
+                <div id="q-explicacao" style="display: ${displayExp}; margin-bottom: 15px; padding: 15px; border-radius: 8px; font-size: 13px; color: #475569; background: #f8fafc; border: 2px solid #e2e8f0;">${textoExpHtml}</div>
                 <div style="display: grid; gap: 8px;">
                     ${htmlAlternativas}
                 </div>
             </div>
         `;
 
-        atualizarPlacarEstatisticas();
+        if (!ehModoRevisao) {
+            atualizarPlacarEstatisticas();
+        } else {
+            document.querySelector('.placar-stats').style.display = 'none';
+        }
     };
 
     const atualizarPlacarEstatisticas = () => {
@@ -825,7 +859,7 @@ window.Router.register('homeconcurseiro', async () => {
 
         expBox.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 11px; font-weight: 900; color: #0369a1; background: #e0f2fe; padding: 4px 10px; border-radius: 6px;">EXPLICAÇÃO DO GABARITO</span>
+                <span style="font-size: 11px; font-weight: 900; color: #0369a1; background: #e0f2fe; padding: 4px 10px; border-radius: 6px;">EXPLICAÇÃO</span>
             </div>
             <div style="color: #334155; line-height: 1.6; font-size: 14px;">${textoExp}</div>
         `;
