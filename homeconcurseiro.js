@@ -635,39 +635,17 @@ window.Router.register('homeconcurseiro', async () => {
         progressoUsuario.resolvidas[questaoAtual.idQ] = { acertou, data: Date.now() };
 
         const expBox = document.getElementById('q-explicacao');
-        const altResposta = document.getElementById(`alt-${correta}`);
-        
         let textoExp = questaoAtual.explicacao ? questaoAtual.explicacao.replace(/\n/g, '<br>') : `Gabarito Correto: ${correta}`;
 
         expBox.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                <span style="font-size: 11px; font-weight: 800; color: #64748b;">EXPLICAÇÃO:</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 11px; font-weight: 900; color: #0369a1; background: #e0f2fe; padding: 4px 10px; border-radius: 6px;">EXPLICAÇÃO DO GABARITO</span>
             </div>
-            ${textoExp}
+            <div style="color: #334155; line-height: 1.6; font-size: 14px;">${textoExp}</div>
         `;
 
-        altResposta.style.zIndex = '99';
-        expBox.style.position = 'absolute';
-        expBox.style.left = '0';
-        expBox.style.right = '0';
-        expBox.style.zIndex = '100';
-        expBox.style.background = '#e0f2fe';
-        expBox.style.border = '2px solid #bae6fd';
-        expBox.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
-        
-        if (['A', 'B', 'C'].includes(correta)) {
-            expBox.style.top = '100%';
-            expBox.style.marginTop = '10px';
-            expBox.style.bottom = 'auto';
-            expBox.style.marginBottom = '0';
-        } else {
-            expBox.style.bottom = '100%';
-            expBox.style.marginBottom = '10px';
-            expBox.style.top = 'auto';
-            expBox.style.marginTop = '0';
-        }
-
-        altResposta.appendChild(expBox);
+        expBox.style.background = '#f8fafc';
+        expBox.style.border = '2px solid #e2e8f0';
         expBox.style.display = 'block';
 
         atualizarPlacarEstatisticas();
