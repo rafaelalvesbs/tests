@@ -1150,8 +1150,8 @@ window.Router.register('homeconcurseiro', async () => {
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Placar */
-        .placar-stats { display: flex; justify-content: space-between; background: #fff; padding: 15px 20px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px; }
-        .stat-item { display: flex; flex-direction: column; align-items: center; }
+        .placar-stats { display: flex; justify-content: space-around; gap: 8px; background: #fff; padding: 15px 15px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 25px; flex-wrap: nowrap; }
+        .stat-item { display: flex; flex-direction: column; align-items: center; flex: 1; min-width: 0; }
         .stat-valor { font-size: 18px; font-weight: 900; color: #0f172a; }
         .stat-label { font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; margin-top: 4px; }
         .stat-acerto-color { color: #10b981; }
@@ -1169,7 +1169,6 @@ window.Router.register('homeconcurseiro', async () => {
 
         /* Loader */
         .loader-q { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; }
-        .spinner-q { width: 50px; height: 50px; border: 4px solid #e2e8f0; border-top: 4px solid #0f172a; border-radius: 50%; animation: spinQ 0.8s linear infinite; }
         @keyframes spinQ { to { transform: rotate(360deg); } }
         @keyframes pageSwipeOut { 0% { transform: translateX(0) scale(1) rotateY(0); opacity: 1; } 100% { transform: translateX(-100%) scale(0.95) rotateY(-20deg); opacity: 0.3; } }
         @keyframes pageSwipeIn { 0% { transform: translateX(100%) scale(0.95) rotateY(20deg); opacity: 0.3; } 100% { transform: translateX(0) scale(1) rotateY(0); opacity: 1; } }
@@ -1343,7 +1342,7 @@ window.Router.register('homeconcurseiro', async () => {
         <!-- VIEW 4: RESOLUÇÃO -->
         <div id="view-questoes" class="view-concurseiro">
             <div id="loader-questoes" class="loader-q" style="display:none;">
-                <div class="spinner-q"></div>
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 40px; color: #38bdf8;"></i>
             </div>
 
             <div id="fim-disciplina" style="display:none; flex-direction:column; align-items:center; text-align:center; padding: 40px 10px;">
