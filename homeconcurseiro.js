@@ -852,7 +852,7 @@ window.Router.register('homeconcurseiro', async () => {
         <!-- MODAL FILTRO DISCIPLINA -->
         <div id="modal-filtro-disciplina" class="modal-aluno">
             <div class="modal-aluno-content">
-                <div style="font-size: 35px; color: #3b82f6; margin-bottom: 10px;"><i class="fa-solid fa-shuffle"></i></div>
+                <div style="font-size: 35px; color: #3b82f6; margin-bottom: 10px;"><span style="font-weight:900; font-family:'Plus Jakarta Sans',sans-serif;">D</span></div>
                 <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900;">Filtrar por Disciplina</h3>
                 <p style="color:#64748b; font-size: 13px; margin-bottom:15px;">Escolha uma disciplina específica ou misture todas.</p>
                 <select id="select-filtro-disciplina" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; outline: none;"></select>
@@ -866,7 +866,7 @@ window.Router.register('homeconcurseiro', async () => {
         <!-- MODAL FILTRO ASSUNTO -->
         <div id="modal-filtro-assunto" class="modal-aluno">
             <div class="modal-aluno-content">
-                <div style="font-size: 35px; color: #8b5cf6; margin-bottom: 10px;"><i class="fa-solid fa-filter"></i></div>
+                <div style="font-size: 35px; color: #8b5cf6; margin-bottom: 10px;"><span style="font-weight:900; font-family:'Plus Jakarta Sans',sans-serif;">A</span></div>
                 <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900;">Filtrar por Assunto</h3>
                 <p style="color:#64748b; font-size: 13px; margin-bottom:15px;">Escolha um assunto desta disciplina para focar.</p>
                 <select id="select-filtro-assunto" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; outline: none;"></select>
@@ -953,8 +953,8 @@ window.Router.register('homeconcurseiro', async () => {
                     <button id="btn-timer" class="btn-acao-q" onclick="window.toggleTimer()" title="Cronômetro" style="color:#64748b;"><i class="fa-solid fa-clock"></i></button>
                     <button id="btn-fav-q" class="btn-acao-q" onclick="window.toggleFavorito()" title="Favoritar Questão" style="color:#64748b;"><i class="fa-solid fa-star"></i></button>
                     <button class="btn-acao-q" onclick="window.abrirModalReporte()" title="Reportar Erro" style="color:#64748b;"><i class="fa-solid fa-triangle-exclamation"></i></button>
-                    <button class="btn-acao-q" onclick="window.abrirModalFiltroDisciplina()" title="Filtrar por Disciplina" style="color:#3b82f6;"><i class="fa-solid fa-shuffle"></i></button>
-                    <button class="btn-acao-q" onclick="window.abrirModalFiltroAssunto()" title="Filtrar por Assunto" style="color:#8b5cf6;"><i class="fa-solid fa-filter"></i></button>
+                    <button class="btn-acao-q" onclick="window.abrirModalFiltroDisciplina()" title="Filtrar por Disciplina" style="color:#3b82f6;"><span style="font-weight:900; font-family:'Plus Jakarta Sans',sans-serif;">D</span></button>
+                    <button class="btn-acao-q" onclick="window.abrirModalFiltroAssunto()" title="Filtrar por Assunto" style="color:#8b5cf6;"><span style="font-weight:900; font-family:'Plus Jakarta Sans',sans-serif;">A</span></button>
                     <button id="btn-mute-sound" class="btn-acao-q" onclick="window.toggleMute()" title="Mutar Som" style="color:#10b981;"><i class="fa-solid fa-volume-high"></i></button>
                 </div>
 
