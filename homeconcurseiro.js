@@ -19,6 +19,11 @@ window.Router.register('homeconcurseiro', async () => {
     let cargoSelecionado = null;
     let cargosDisponiveis = {};
     let todasAtividadesConcurso = [];
+    let backupProgresso = null;
+    let timerInterval = null;
+    let tempoSegundos = 0;
+    let modoFocoAtivo = false;
+    let refazendoErros = false;
 
     // Gerador de Som nativo (Web Audio API) para não depender de arquivos externos
     const tocarSom = (tipo) => {
@@ -452,11 +457,124 @@ window.Router.register('homeconcurseiro', async () => {
         } catch (e) { console.error(e); }
     };
 
+    window.toggleZerarProgresso = async () => {
+        const btn = document.getElementById('btn-zerar-prog');
+        const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`;
+        const refDoc = doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`);
+
+        if (!backupProgresso) {
+            backupProgresso = JSON.parse(JSON.stringify(progressoUsuario));
+            progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
+            btn.style.color = '#ef4444';
+            refazendoErros = false;
+        } else {
+            progressoUsuario = JSON.parse(JSON.stringify(backupProgresso));
+            backupProgresso = null;
+            btn.style.color = '#64748b';
+            refazendoErros = false;
+        }
+        
+        questoesPendentes = bateriaQuestoes.filter(q => !progressoUsuario.resolvidas[q.idQ]);
+        localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
+        setDoc(refDoc, progressoUsuario, { merge: true });
+        
+        if (questoesPendentes.length > 0) {
+            questoesPendentes = questoesPendentes.sort(() => Math.random() - 0.5);
+        }
+        carregarProximaQuestao();
+    };
+
+    window.toggleTimer = () => {
+        const btn = document.getElementById('btn-timer');
+        const display = document.getElementById('display-timer');
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            btn.style.color = '#64748b';
+            display.style.display = 'none';
+        } else {
+            tempoSegundos = 0;
+            display.innerText = "00:00";
+            display.style.display = 'flex';
+            btn.style.color = '#f59e0b';
+            timerInterval = setInterval(() => {
+                tempoSegundos++;
+                const m = Math.floor(tempoSegundos / 60).toString().padStart(2, '0');
+                const s = (tempoSegundos % 60).toString().padStart(2, '0');
+                display.innerText = `${m}:${s}`;
+            }, 1000);
+        }
+    };
+
+    window.toggleFoco = () => {
+        modoFocoAtivo = !modoFocoAtivo;
+        const btn = document.getElementById('btn-foco');
+        const elementsToHide = document.querySelectorAll('.placar-stats, .q-header, .btn-proxima-desk');
+        
+        if (modoFocoAtivo) {
+            btn.style.color = '#8b5cf6';
+            elementsToHide.forEach(el => el.style.display = 'none');
+        } else {
+            btn.style.color = '#64748b';
+            elementsToHide.forEach(el => el.style.display = '');
+        }
+    };
+
+    window.toggleFavorito = () => {
+        if (!questaoAtual) return;
+        const idQ = questaoAtual.idQ;
+        if (!progressoUsuario.favoritas) progressoUsuario.favoritas = {};
+        
+        if (progressoUsuario.favoritas[idQ]) {
+            delete progressoUsuario.favoritas[idQ];
+            document.getElementById('btn-fav-q').style.color = '#cbd5e1';
+        } else {
+            progressoUsuario.favoritas[idQ] = true;
+            document.getElementById('btn-fav-q').style.color = '#eab308';
+        }
+        
+        const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`;
+        localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
+        setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`), progressoUsuario, { merge: true });
+    };
+
+    window.abrirModalReporte = () => {
+        document.getElementById('modal-reportar-erro').style.display = 'flex';
+    };
+
+    window.enviarReporte = async () => {
+        const desc = document.getElementById('input-reporte-erro').value;
+        if (!desc.trim()) return;
+        
+        document.getElementById('modal-reportar-erro').style.display = 'none';
+        
+        try {
+            await setDoc(doc(collection(db, "reportes_questoes")), {
+                usuarioId: userAtual.uid,
+                questaoId: questaoAtual.idQ,
+                concursoId: dadosConcurso.id,
+                descricao: desc,
+                data: Date.now()
+            });
+            window.showAlertAluno("Reporte Enviado", "Obrigado por avisar! Nossa equipe vai analisar essa questão.");
+        } catch(e) {
+            console.error(e);
+        }
+    };
+
     const carregarProximaQuestao = () => {
         if (questoesPendentes.length === 0) {
-            document.getElementById('fim-disciplina').style.display = 'flex';
-            document.getElementById('area-resolucao').style.display = 'none';
-            return;
+            const erradas = bateriaQuestoes.filter(q => progressoUsuario.resolvidas[q.idQ] && !progressoUsuario.resolvidas[q.idQ].acertou);
+            
+            if (erradas.length > 0 && !refazendoErros) {
+                refazendoErros = true;
+                questoesPendentes = erradas.sort(() => Math.random() - 0.5);
+                questoesPendentes.forEach(q => delete progressoUsuario.resolvidas[q.idQ]);
+            } else {
+                document.getElementById('fim-disciplina').style.display = 'flex';
+                document.getElementById('area-resolucao').style.display = 'none';
+                return;
+            }
         }
 
         questaoRespondidaAgora = false;
@@ -465,6 +583,14 @@ window.Router.register('homeconcurseiro', async () => {
         document.getElementById('fim-disciplina').style.display = 'none';
         document.getElementById('area-resolucao').style.display = 'block';
         document.getElementById('q-concurso-nome').innerText = dadosConcurso.titulo;
+        
+        const favIconColor = (progressoUsuario.favoritas && progressoUsuario.favoritas[questaoAtual.idQ]) ? '#eab308' : '#cbd5e1';
+        
+        let headerQuestaoAdicional = '';
+        if (refazendoErros) {
+            headerQuestaoAdicional = `<span style="display: inline-block; padding: 2px 10px; background: #ef4444; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800; margin-left: 8px;">REFAZENDO ERROS</span>`;
+        }
+
         document.getElementById('q-progresso').innerText = `${progressoUsuario.totalFeitas + 1} / ${bateriaQuestoes.length}`;
         
         const numQuestao = progressoUsuario.totalFeitas + 1;
@@ -481,8 +607,15 @@ window.Router.register('homeconcurseiro', async () => {
 
         containerQuestao.innerHTML = `
             <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
-                <div style="margin-bottom: 10px;">
-                    <span style="display: inline-block; padding: 2px 10px; background: #0f172a; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800;">QUESTÃO ${numQuestao}</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div>
+                        <span style="display: inline-block; padding: 2px 10px; background: #0f172a; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800;">QUESTÃO ${numQuestao}</span>
+                        ${headerQuestaoAdicional}
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <i id="btn-fav-q" class="fa-solid fa-star" onclick="window.toggleFavorito()" style="color: ${favIconColor}; font-size: 18px; cursor: pointer; transition: 0.2s;" title="Favoritar Questão"></i>
+                        <i class="fa-solid fa-triangle-exclamation" onclick="window.abrirModalReporte()" style="color: #cbd5e1; font-size: 18px; cursor: pointer; transition: 0.2s;" title="Reportar Erro"></i>
+                    </div>
                 </div>
                 <p style="font-weight: 600; color: #1e293b; font-size: 14px; line-height: 1.6; margin-bottom: 15px;">${questaoAtual.enunciado.replace(/\n/g, '<br>')}</p>
                 <div style="display: grid; gap: 8px;">
@@ -860,10 +993,15 @@ window.Router.register('homeconcurseiro', async () => {
                     <div class="q-progresso-badge" id="q-progresso">1 / 100</div>
                 </div>
 
-                <div class="q-actions">
+                <div class="q-actions" style="flex-wrap: wrap;">
+                    <div id="display-timer" style="display:none; align-items:center; background:#fff; border:1px solid #e2e8f0; padding:0 12px; border-radius:10px; color:#f59e0b; font-weight:800; font-size:14px; letter-spacing:1px; height:40px;">00:00</div>
+                    <button id="btn-timer" class="btn-acao-q" onclick="window.toggleTimer()" title="Cronômetro" style="color:#64748b;"><i class="fa-solid fa-clock"></i></button>
+                    <button id="btn-foco" class="btn-acao-q" onclick="window.toggleFoco()" title="Modo Foco" style="color:#64748b;"><i class="fa-solid fa-expand"></i></button>
+                    <button id="btn-zerar-prog" class="btn-acao-q" onclick="window.toggleZerarProgresso()" title="Zerar / Restaurar Progresso" style="color:#64748b;"><i class="fa-solid fa-rotate-left"></i></button>
+                    <div style="width: 2px; background: #e2e8f0; margin: 0 4px;"></div>
                     <button class="btn-acao-q" onclick="window.abrirModalFiltroDisciplina()" title="Filtrar por Disciplina" style="color:#3b82f6;"><i class="fa-solid fa-shuffle"></i></button>
                     <button class="btn-acao-q" onclick="window.abrirModalFiltroAssunto()" title="Filtrar por Assunto" style="color:#8b5cf6;"><i class="fa-solid fa-filter"></i></button>
-                    <button id="btn-mute-sound" class="btn-acao-q" onclick="window.toggleMute()" style="color:#10b981;"><i class="fa-solid fa-volume-high"></i></button>
+                    <button id="btn-mute-sound" class="btn-acao-q" onclick="window.toggleMute()" title="Mutar Som" style="color:#10b981;"><i class="fa-solid fa-volume-high"></i></button>
                 </div>
 
                 <div id="render-questao-aqui"></div>
