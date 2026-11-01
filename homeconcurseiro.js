@@ -689,15 +689,51 @@ window.Router.register('homeconcurseiro', async () => {
             window.showAlertAluno("Erro", "Nenhuma questão carregada para reportar.", "error");
             return;
         }
-        document.getElementById('input-reporte-erro').value = '';
+        document.getElementById('rep-form-desc').value = '';
+        document.getElementById('rep-form-nome').value = '';
+        document.getElementById('rep-form-tel').value = '';
+        document.getElementById('rep-form-email').value = '';
+        document.getElementById('rep-form-senha').value = '';
+        document.getElementById('rep-form-senha-conf').value = '';
         document.getElementById('modal-reportar-erro').style.display = 'flex';
     };
 
     window.enviarReporte = async () => {
         if (!questaoAtual) return;
         
-        let desc = document.getElementById('input-reporte-erro').value;
-        if (!desc.trim()) desc = 'Questão reportada pelo aluno sem descrição adicional.';
+        const q1 = document.getElementById('rep-q1').value;
+        const q2 = document.getElementById('rep-q2').value;
+        const q3 = document.getElementById('rep-q3').value;
+        const q4 = document.getElementById('rep-q4').value;
+        const desc = document.getElementById('rep-form-desc').value.trim();
+        const nome = document.getElementById('rep-form-nome').value.trim();
+        const tel = document.getElementById('rep-form-tel').value.trim();
+        const email = document.getElementById('rep-form-email').value.trim();
+        const senha = document.getElementById('rep-form-senha').value.trim();
+        const senhaConf = document.getElementById('rep-form-senha-conf').value.trim();
+
+        if(!q1 || !q2 || !q3 || !q4 || !desc || !nome || !tel || !email || !senha || !senhaConf) {
+            window.showAlertAluno("Campos Incompletos", "Você precisa preencher TODOS os campos para registrar o chamado.", "error");
+            return;
+        }
+
+        if(senha !== senhaConf) {
+            window.showAlertAluno("Erro de Segurança", "As senhas de segurança não coincidem.", "error");
+            return;
+        }
+
+        const regexSenha = /^(?=(?:[^A-Za-z]*[A-Za-z]){4})(?=(?:\D*\d){4})[A-Za-z\d]{8}$/;
+        let tempSenhaStr = senha.replace(/[^a-zA-Z0-9]/g, '');
+        let letrasMaiusculas = (tempSenhaStr.match(/[A-Z]/g) || []).length;
+        let letrasMinusculas = (tempSenhaStr.match(/[a-z]/g) || []).length;
+        let numeros = (tempSenhaStr.match(/[0-9]/g) || []).length;
+
+        if (tempSenhaStr.length !== 8 || letrasMaiusculas === 0 || letrasMinusculas === 0 || (letrasMaiusculas + letrasMinusculas) !== 4 || numeros !== 4) {
+            window.showAlertAluno("Senha Inválida", "A senha de verificação precisa ter exatos 8 caracteres misturados: 4 letras (ao menos 1 maiúscula e 1 minúscula) e 4 números.", "error");
+            return;
+        }
+
+        const descFinal = `Tipo: ${q1} | Enunciado claro? ${q2} | Alt erradas? ${q3} | Fonte? ${q4}\n\nMotivo: ${desc}\n\nPor: ${nome} (${email} / ${tel})`;
         
         document.getElementById('modal-reportar-erro').style.display = 'none';
         
@@ -709,7 +745,7 @@ window.Router.register('homeconcurseiro', async () => {
                 questaoId: questaoAtual.idQ,
                 concursoId: dadosConcurso.id,
                 disciplina: discCorreta,
-                descricao: desc,
+                descricao: descFinal,
                 data: Date.now()
             });
             
@@ -720,8 +756,7 @@ window.Router.register('homeconcurseiro', async () => {
             
             await setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_global_reps`), { reportadas: globReps }, { merge: true });
 
-            document.getElementById('input-reporte-erro').value = '';
-            window.showAlertAluno("Reporte Enviado", "Obrigado por avisar! Nossa equipe vai analisar essa questão.");
+            window.showAlertAluno("Reporte Enviado", "Obrigado! Seu registro formal foi aberto. Nossa equipe vai analisar essa questão.");
         } catch(e) {
             window.showAlertAluno("Erro", "Falha ao enviar reporte. Tente novamente.", "error");
             console.error(e);
@@ -1156,13 +1191,57 @@ window.Router.register('homeconcurseiro', async () => {
 
         <!-- MODAL REPORTAR ERRO -->
         <div id="modal-reportar-erro" class="modal-aluno">
-            <div class="modal-aluno-content">
-                <div style="font-size: 35px; color: #cbd5e1; margin-bottom: 10px;"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900;">Reportar Problema</h3>
-                <p style="color:#64748b; font-size: 13px; margin-bottom:15px;">Encontrou algum erro na questão? Descreva abaixo para avaliarmos.</p>
-                <textarea id="input-reporte-erro" rows="3" placeholder="Ex: Gabarito errado, questão desatualizada..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; outline: none; resize: none;"></textarea>
+            <div class="modal-aluno-content" style="max-height: 90vh; overflow-y: auto; padding: 25px;">
+                <div style="font-size: 35px; color: #ef4444; margin-bottom: 10px;"><i class="fa-solid fa-file-signature"></i></div>
+                <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900;">Abertura de Chamado</h3>
+                <p style="color:#64748b; font-size: 13px; margin-bottom:15px;">Para solicitar a revisão técnica de uma questão, preencha o formulário obrigatório abaixo.</p>
+                
+                <div style="text-align: left; margin-bottom: 15px;">
+                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">1. Qual o erro principal?</label>
+                    <select id="rep-q1" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none;">
+                        <option value="" disabled selected>Selecione...</option>
+                        <option value="Gabarito Incorreto">Gabarito Incorreto</option>
+                        <option value="Questão Desatualizada">Questão Desatualizada / Revogada</option>
+                        <option value="Erro de Digitação/Formatação">Erro de Digitação/Formatação</option>
+                        <option value="Múltiplas Corretas / Nenhuma Correta">Múltiplas Corretas / Nenhuma Correta</option>
+                    </select>
+
+                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">2. O enunciado está claro?</label>
+                    <select id="rep-q2" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none;">
+                        <option value="" disabled selected>Selecione...</option>
+                        <option value="Sim">Sim, perfeitamente.</option>
+                        <option value="Não">Não, está ambíguo ou incompleto.</option>
+                    </select>
+
+                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">3. As alternativas estão condizentes?</label>
+                    <select id="rep-q3" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none;">
+                        <option value="" disabled selected>Selecione...</option>
+                        <option value="Sim">Sim, fazem sentido.</option>
+                        <option value="Não">Não, fogem totalmente do tema.</option>
+                    </select>
+
+                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">4. Você verificou a legislação/fonte?</label>
+                    <select id="rep-q4" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none;">
+                        <option value="" disabled selected>Selecione...</option>
+                        <option value="Sim">Sim, conferi antes de reportar.</option>
+                        <option value="Não">Não, apenas desconfio do erro.</option>
+                    </select>
+                    
+                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Descreva o erro de forma clara e curta:</label>
+                    <textarea id="rep-form-desc" rows="2" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; outline: none; resize: none;"></textarea>
+
+                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Identificação Obrigatória:</label>
+                    <input type="text" id="rep-form-nome" placeholder="Nome Completo" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 8px; outline: none;">
+                    <input type="email" id="rep-form-email" placeholder="E-mail de Contato" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 8px; outline: none;">
+                    <input type="tel" id="rep-form-tel" placeholder="Telefone com DDD" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 15px; outline: none;">
+
+                    <label style="font-size: 11px; font-weight: 700; color: #ef4444; margin-bottom: 5px; display: block;">Senha de Autenticação para Reporte (8 caracteres, sendo 4 letras min./maiúsculas e 4 números):</label>
+                    <input type="password" id="rep-form-senha" placeholder="Digite a senha..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 8px; outline: none;">
+                    <input type="password" id="rep-form-senha-conf" placeholder="Confirme a senha..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none;">
+                </div>
+
                 <div style="display:flex; flex-direction: column; gap:10px;">
-                    <button class="btn-modal-aluno" style="background:#0f172a; margin-top:0;" onclick="window.enviarReporte()">ENVIAR AVISO</button>
+                    <button class="btn-modal-aluno" style="background:#0f172a; margin-top:0;" onclick="window.enviarReporte()">ENVIAR CHAMADO TÉCNICO</button>
                     <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="this.closest('.modal-aluno').style.display='none'">CANCELAR</button>
                 </div>
             </div>
