@@ -32,23 +32,26 @@ window.Router.register('erros', async () => {
             let pendentesRaw = [];
             snapPendentes.forEach(d => pendentesRaw.push({ id: d.id, ...d.data() }));
 
-            // Agrupa os reportes por questaoId para responder a todos de uma vez
+            // Agrupa os reportes por questaoId para responder a todos de uma vez com trava de segurança
             const agrupados = {};
             pendentesRaw.forEach(r => {
-                if(!agrupados[r.questaoId]) {
-                    agrupados[r.questaoId] = {
-                        questaoId: r.questaoId,
-                        atividadeId: r.questaoId.split('_')[0],
-                        indexQuestao: parseInt(r.questaoId.split('_')[1]),
+                const qId = r.questaoId;
+                if (!qId || typeof qId !== 'string' || !qId.includes('_')) return; 
+
+                if(!agrupados[qId]) {
+                    agrupados[qId] = {
+                        questaoId: qId,
+                        atividadeId: qId.split('_')[0],
+                        indexQuestao: parseInt(qId.split('_')[1]),
                         disciplina: r.disciplina || 'Desconhecida',
-                        dataRecente: r.data,
+                        dataRecente: r.data || 0,
                         reportesIds: [r.id],
-                        usuariosDescricoes: [{ id: r.usuarioId, desc: r.descricao }]
+                        usuariosDescricoes: [{ id: r.usuarioId || 'N/A', desc: r.descricao || 'Sem descrição' }]
                     };
                 } else {
-                    agrupados[r.questaoId].reportesIds.push(r.id);
-                    agrupados[r.questaoId].usuariosDescricoes.push({ id: r.usuarioId, desc: r.descricao });
-                    if(r.data > agrupados[r.questaoId].dataRecente) agrupados[r.questaoId].dataRecente = r.data;
+                    agrupados[qId].reportesIds.push(r.id);
+                    agrupados[qId].usuariosDescricoes.push({ id: r.usuarioId || 'N/A', desc: r.descricao || 'Sem descrição' });
+                    if(r.data && r.data > agrupados[qId].dataRecente) agrupados[qId].dataRecente = r.data;
                 }
             });
 
@@ -63,7 +66,7 @@ window.Router.register('erros', async () => {
 
         } catch (e) {
             console.error(e);
-            container.innerHTML = '<p style="color:#ef4444; text-align:center;">Erro ao carregar os dados do servidor.</p>';
+            container.innerHTML = `<p style="color:#ef4444; text-align:center; padding: 20px;">Erro ao carregar os dados. Verifique o console para mais detalhes.</p>`;
         }
     };
 
@@ -109,43 +112,49 @@ window.Router.register('erros', async () => {
             `).join('');
 
             containerInputs.innerHTML = `
-                <div style="max-height: 120px; overflow-y: auto; margin-bottom: 15px; border: 1px dashed #cbd5e1; padding: 10px; border-radius: 8px;">
+                <div style="max-height: 80px; overflow-y: auto; margin-bottom: 10px; border: 1px dashed #cbd5e1; padding: 10px; border-radius: 8px;">
                     <div style="font-size: 11px; font-weight: 800; color: #ef4444; margin-bottom: 8px; text-align:left;">REPORTES RECEBIDOS PARA ESTA QUESTÃO:</div>
                     ${htmlQuestoesReportadas}
                 </div>
 
-                <div style="text-align: left; margin-bottom: 15px;">
-                    <label style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:5px; display:block;">Enunciado:</label>
-                    <textarea id="ed-erro-enunc" class="input-premium" style="height:70px; resize:none;">${questaoOriginal.enunciado}</textarea>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left; margin-bottom: 10px;">
+                    <div>
+                        <label style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:5px; display:block;">Enunciado:</label>
+                        <textarea id="ed-erro-enunc" class="input-premium" style="height:100px; resize:none; margin-bottom:10px;">${questaoOriginal.enunciado}</textarea>
+                        
+                        <label style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:5px; display:block;">Explicação:</label>
+                        <textarea id="ed-erro-exp" class="input-premium" style="height:80px; resize:none; margin-bottom:0;">${questaoOriginal.explicacao || ''}</textarea>
+                    </div>
                     
-                    <div style="display:grid; grid-template-columns: auto 1fr; gap: 8px; align-items:center; margin-bottom:5px;">
-                        <span style="font-weight:800; color:#64748b;">A)</span>
-                        <input type="text" id="ed-erro-opt-a" class="input-premium" style="margin:0;" value="${questaoOriginal.opcoes.A}">
-                    </div>
-                    <div style="display:grid; grid-template-columns: auto 1fr; gap: 8px; align-items:center; margin-bottom:5px;">
-                        <span style="font-weight:800; color:#64748b;">B)</span>
-                        <input type="text" id="ed-erro-opt-b" class="input-premium" style="margin:0;" value="${questaoOriginal.opcoes.B}">
-                    </div>
-                    <div style="display:grid; grid-template-columns: auto 1fr; gap: 8px; align-items:center; margin-bottom:5px;">
-                        <span style="font-weight:800; color:#64748b;">C)</span>
-                        <input type="text" id="ed-erro-opt-c" class="input-premium" style="margin:0;" value="${questaoOriginal.opcoes.C}">
-                    </div>
-                    <div style="display:grid; grid-template-columns: auto 1fr; gap: 8px; align-items:center; margin-bottom:5px;">
-                        <span style="font-weight:800; color:#64748b;">D)</span>
-                        <input type="text" id="ed-erro-opt-d" class="input-premium" style="margin:0;" value="${questaoOriginal.opcoes.D}">
-                    </div>
-                    <div style="display:grid; grid-template-columns: auto 1fr; gap: 8px; align-items:center; margin-bottom:15px;">
-                        <span style="font-weight:800; color:#64748b;">E)</span>
-                        <input type="text" id="ed-erro-opt-e" class="input-premium" style="margin:0;" value="${questaoOriginal.opcoes.E}">
-                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                            <label style="font-size:11px; font-weight:700; color:#64748b;">Gabarito:</label>
+                            <select id="ed-erro-correta" class="input-premium" style="width: 60px; padding: 4px; margin:0; font-weight:900;">
+                                ${['A','B','C','D','E'].map(l => `<option value="${l}" ${questaoOriginal.correta === l ? 'selected' : ''}>${l}</option>`).join('')}
+                            </select>
+                        </div>
 
-                    <label style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:5px; display:block;">Alternativa Correta:</label>
-                    <select id="ed-erro-correta" class="input-premium" style="font-weight:900;">
-                        ${['A','B','C','D','E'].map(l => `<option value="${l}" ${questaoOriginal.correta === l ? 'selected' : ''}>${l}</option>`).join('')}
-                    </select>
-
-                    <label style="font-size:11px; font-weight:700; color:#64748b; margin-bottom:5px; display:block; margin-top:10px;">Explicação:</label>
-                    <textarea id="ed-erro-exp" class="input-premium" style="height:60px; resize:none;">${questaoOriginal.explicacao || ''}</textarea>
+                        <div style="display:grid; grid-template-columns: auto 1fr; gap: 6px; align-items:center; margin-bottom:4px;">
+                            <span style="font-weight:800; color:#64748b; font-size: 11px;">A)</span>
+                            <input type="text" id="ed-erro-opt-a" class="input-premium" style="margin:0; padding: 6px;" value="${questaoOriginal.opcoes.A}">
+                        </div>
+                        <div style="display:grid; grid-template-columns: auto 1fr; gap: 6px; align-items:center; margin-bottom:4px;">
+                            <span style="font-weight:800; color:#64748b; font-size: 11px;">B)</span>
+                            <input type="text" id="ed-erro-opt-b" class="input-premium" style="margin:0; padding: 6px;" value="${questaoOriginal.opcoes.B}">
+                        </div>
+                        <div style="display:grid; grid-template-columns: auto 1fr; gap: 6px; align-items:center; margin-bottom:4px;">
+                            <span style="font-weight:800; color:#64748b; font-size: 11px;">C)</span>
+                            <input type="text" id="ed-erro-opt-c" class="input-premium" style="margin:0; padding: 6px;" value="${questaoOriginal.opcoes.C}">
+                        </div>
+                        <div style="display:grid; grid-template-columns: auto 1fr; gap: 6px; align-items:center; margin-bottom:4px;">
+                            <span style="font-weight:800; color:#64748b; font-size: 11px;">D)</span>
+                            <input type="text" id="ed-erro-opt-d" class="input-premium" style="margin:0; padding: 6px;" value="${questaoOriginal.opcoes.D}">
+                        </div>
+                        <div style="display:grid; grid-template-columns: auto 1fr; gap: 6px; align-items:center; margin-bottom:4px;">
+                            <span style="font-weight:800; color:#64748b; font-size: 11px;">E)</span>
+                            <input type="text" id="ed-erro-opt-e" class="input-premium" style="margin:0; padding: 6px;" value="${questaoOriginal.opcoes.E}">
+                        </div>
+                    </div>
                 </div>
             `;
             
@@ -327,11 +336,12 @@ window.Router.register('erros', async () => {
                     </div>
                 </div>`;
             } else {
+                const idCurtoUser = item.usuarioId ? item.usuarioId.substring(0, 5) + '...' : 'N/A';
                 return `
                 <div class="card-premium-list" style="margin-bottom:10.5px; padding:0 15px; border-left:4px solid #10b981; background:#fff; border-radius:8px; display:grid; grid-template-columns: 1fr 1fr auto; align-items:center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); height: 45px; box-sizing: border-box; width: 100%; gap: 15px;">
                     <div style="display: flex; align-items: center; overflow: hidden; gap: 5px;">
                         <span style="font-size:9px; padding:2px 6px; background:#10b981; color:white; border-radius:4px; font-weight:700; white-space:nowrap; flex-shrink: 0;"><i class="fa-solid fa-check"></i> OK</span>
-                        <span style="font-size:9px; padding:2px 6px; background:#f1f5f9; color:#0f172a; border-radius:4px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:inline-block; max-width: 100%;">ID: ${item.usuarioId.substring(0,5)}...</span>
+                        <span style="font-size:9px; padding:2px 6px; background:#f1f5f9; color:#0f172a; border-radius:4px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:inline-block; max-width: 100%;">ID: ${idCurtoUser}</span>
                     </div>
                     <div style="display: flex; justify-content: center; flex-direction:column; overflow: hidden; line-height: 1.2; text-align: center;">
                         <h3 style="margin:0; color:#0f172a; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight: 800; text-transform: uppercase;" title="${discFormatada}">${discFormatada}</h3>
@@ -384,7 +394,7 @@ window.Router.register('erros', async () => {
             .spinner-q { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top: 4px solid #0f172a; border-radius: 50%; animation: spinQ 0.8s linear infinite; }
             @keyframes spinQ { to { transform: rotate(360deg); } }
             .modal-admin { position:fixed; inset:0; background:rgba(15, 23, 42, 0.7); backdrop-filter:blur(4px); display:none; justify-content:center; align-items:center; z-index:9999; padding:20px; }
-            .modal-admin-content { background:#fff; width:100%; max-width:600px; border-radius:24px; padding:30px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position:relative; }
+            .modal-admin-content { background:#fff; width:100%; max-width:800px; border-radius:24px; padding:30px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position:relative; max-height: 90vh; overflow-y: auto;}
         </style>
         
         <div class="erros-container">
@@ -412,7 +422,7 @@ window.Router.register('erros', async () => {
                     <div id="inputs-edicao-questao-erro" style="margin-top: 15px; margin-bottom: 15px;"></div>
                     
                     <input type="hidden" id="modal-resposta-erro-id">
-                    <textarea id="modal-resposta-erro-texto" class="input-premium" rows="3" placeholder="Escreva a resposta aos alunos (ex: Gabarito alterado. Obrigado pelo aviso!)..." style="resize:none; height: 80px; font-size: 13px; margin-bottom: 20px; border-color:#3b82f6;"></textarea>
+                    <textarea id="modal-resposta-erro-texto" class="input-premium" rows="2" placeholder="Escreva a resposta aos alunos (ex: Gabarito alterado. Obrigado pelo aviso!)..." style="resize:none; height: 60px; font-size: 13px; margin-bottom: 15px; border-color:#3b82f6;"></textarea>
                     
                     <div style="display:flex; flex-direction: column; gap:10px;">
                         <button id="btn-confirmar-resp-erro" onclick="window.confirmarResponderErro()" style="background:#0f172a; color:#fff; border:none; padding:16px; border-radius:14px; font-weight:800; font-size: 14px; cursor:pointer; transition:0.2s; display:none;">SALVAR E ENVIAR FEEDBACK</button>
