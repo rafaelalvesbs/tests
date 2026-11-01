@@ -819,6 +819,7 @@ window.Router.register('homeconcurseiro', async () => {
     const atualizarPlacarEstatisticas = () => {
         document.getElementById('stat-feitas').innerText = progressoUsuario.totalFeitas;
         document.getElementById('stat-acertos').innerText = progressoUsuario.acertos;
+        document.getElementById('stat-erros').innerText = progressoUsuario.erros;
         const porcentagem = progressoUsuario.totalFeitas > 0 ? Math.round((progressoUsuario.acertos / progressoUsuario.totalFeitas) * 100) : 0;
         document.getElementById('stat-pct').innerText = `${porcentagem}%`;
     };
@@ -1193,11 +1194,15 @@ window.Router.register('homeconcurseiro', async () => {
                         <div class="stat-label">Resolvidas</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-valor stat-acerto-color" id="stat-acertos">0</div>
+                        <div class="stat-valor" id="stat-acertos" style="color: #10b981;">0</div>
                         <div class="stat-label">Acertos</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-valor" id="stat-pct">0%</div>
+                        <div class="stat-valor" id="stat-erros" style="color: #ef4444;">0</div>
+                        <div class="stat-label">Erros</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-valor" id="stat-pct" style="color: #3b82f6;">0%</div>
                         <div class="stat-label">Aproveitamento</div>
                     </div>
                 </div>
