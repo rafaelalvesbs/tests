@@ -24,6 +24,7 @@ window.Router.register('homeconcurseiro', async () => {
     let tempoSegundos = 0;
     let modoFocoAtivo = false;
     let refazendoErros = false;
+    let meusFeedbacks = [];
 
     // Gerador de Som nativo (Web Audio API) para não depender de arquivos externos
     const tocarSom = (tipo) => {
@@ -166,6 +167,13 @@ window.Router.register('homeconcurseiro', async () => {
                         badgeCargo.style.display = 'inline-block';
                     }
                 }
+
+                const qFeedbacks = query(collection(db, "feedbacks_questoes"), where("usuarioId", "==", userAtual.uid), where("lido", "==", false));
+                const snapF = await getDocs(qFeedbacks);
+                meusFeedbacks = [];
+                snapF.forEach(docF => {
+                    meusFeedbacks.push({ id: docF.id, ...docF.data() });
+                });
             } else {
                 document.getElementById('estado-vazio-concurso').style.display = 'block';
                 document.getElementById('view-boas-vindas').style.display = 'none';
@@ -269,6 +277,16 @@ window.Router.register('homeconcurseiro', async () => {
                     <div class="icone-disc" style="background: #ef4444; color: #fff;"><i class="fa-solid fa-triangle-exclamation"></i></div>
                     <div class="nome-disc" style="color: #b91c1c;">QUESTÕES REPORTADAS</div>
                     <i class="fa-solid fa-chevron-right seta-disc" style="color: #ef4444;"></i>
+                </div>
+            `;
+        }
+
+        if (meusFeedbacks.length > 0) {
+            htmlExtras += `
+                <div class="card-disciplina" onclick="window.abrirFeedbacksAluno()" style="border-color: #10b981; background: #ecfdf5; margin-top: 12px;">
+                    <div class="icone-disc" style="background: #10b981; color: #fff;"><i class="fa-solid fa-comment-dots"></i></div>
+                    <div class="nome-disc" style="color: #065f46;">VOCÊ TEM ${meusFeedbacks.length} FEEDBACK(S)!</div>
+                    <i class="fa-solid fa-chevron-right seta-disc" style="color: #10b981;"></i>
                 </div>
             `;
         }
@@ -922,6 +940,40 @@ window.Router.register('homeconcurseiro', async () => {
         }
     };
 
+    window.abrirFeedbacksAluno = () => {
+        const container = document.getElementById('lista-feedbacks-aluno');
+        if(meusFeedbacks.length === 0) {
+            container.innerHTML = '<p style="color:#64748b; font-size:14px; text-align:center;">Nenhum feedback novo.</p>';
+        } else {
+            container.innerHTML = meusFeedbacks.map(fb => `
+                <div style="background: #fff; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.02);">
+                    <div style="font-size: 11px; font-weight: 800; color: #10b981; margin-bottom: 10px; text-transform: uppercase;">Resposta da Equipe</div>
+                    <p style="color: #334155; font-size: 14px; line-height: 1.5; margin-bottom: 15px;">${fb.respostaEquipe.replace(/\n/g, '<br>')}</p>
+                    <div style="background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 12px; color: #64748b; border: 1px dashed #cbd5e1; margin-bottom: 15px;">
+                        <strong>Seu reporte original:</strong><br>
+                        ${fb.descricaoOriginal}
+                    </div>
+                    <button class="btn-hc-primario" style="width: 100%; max-width: none; padding: 12px;" onclick="window.marcarFeedbackLido('${fb.id}')">OK, ENTENDI</button>
+                </div>
+            `).join('');
+        }
+        window.irParaView('view-feedbacks');
+    };
+
+    window.marcarFeedbackLido = async (idFb) => {
+        try {
+            await updateDoc(doc(db, "feedbacks_questoes", idFb), { lido: true });
+            meusFeedbacks = meusFeedbacks.filter(f => f.id !== idFb);
+            if(meusFeedbacks.length === 0) {
+                window.abrirDisciplinas();
+            } else {
+                window.abrirFeedbacksAluno();
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    };
+
     setTimeout(() => {
         buscarDadosIniciais();
         
@@ -1152,6 +1204,14 @@ window.Router.register('homeconcurseiro', async () => {
             <p style="color: #64748b; font-size: 13px; margin-bottom: 20px;">Escolha a matéria que deseja praticar agora.</p>
             
             <div class="lista-disciplinas" id="lista-disciplinas"></div>
+        </div>
+
+        <!-- VIEW FEEDBACKS -->
+        <div id="view-feedbacks" class="view-concurseiro">
+            <button onclick="window.abrirDisciplinas()" style="background:none; border:none; color:#64748b; font-weight:700; margin-bottom:20px; cursor:pointer; font-size:14px;"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+            <h2 style="color: #0f172a; font-weight: 900; margin-bottom: 5px;">Seus Feedbacks</h2>
+            <p style="color: #64748b; font-size: 13px; margin-bottom: 20px;">Nossa equipe avaliou seus reportes.</p>
+            <div id="lista-feedbacks-aluno"></div>
         </div>
 
         <!-- VIEW 4: RESOLUÇÃO -->
