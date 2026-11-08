@@ -233,6 +233,13 @@ window.Router.register('erros', async () => {
         }
     };
 
+    const blindarTexto = (texto) => {
+        if (!texto) return '';
+        return String(texto).replace(/[&<>'"]/g, tag => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[tag] || tag));
+    };
+
     window.visualizarErro = (id, tipo) => {
         let repObj = null;
         if (tipo === 'recebido') {
@@ -243,16 +250,16 @@ window.Router.register('erros', async () => {
         
         if (!repObj) return;
 
-        const discFormatada = repObj.disciplina || 'Geral';
-        const idQuestaoVisual = repObj.questaoId ? repObj.questaoId.split('_')[1] : 'N/A';
+        const discFormatada = blindarTexto(repObj.disciplina || 'Geral');
+        const idQuestaoVisual = blindarTexto(repObj.questaoId ? repObj.questaoId.split('_')[1] : 'N/A');
         const modal = document.getElementById('modal-visualizar-erro');
         const content = document.getElementById('modal-visualizar-erro-content');
 
         if (tipo === 'recebido') {
             const htmlQuestoes = repObj.usuariosDescricoes.map((ud, i) => `
                 <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin-bottom:8px; font-size:13px; text-align:left;">
-                    <strong style="color:#0f172a;">ID Aluno:</strong> ${ud.id.substring(0,5)}...<br>
-                    <span style="color:#475569; display:block; margin-top:5px;">"${ud.desc}"</span>
+                    <strong style="color:#0f172a;">ID Aluno:</strong> ${blindarTexto(ud.id).substring(0,5)}...<br>
+                    <span style="color:#475569; display:block; margin-top:5px;">"${blindarTexto(ud.desc)}"</span>
                 </div>
             `).join('');
 
@@ -274,10 +281,10 @@ window.Router.register('erros', async () => {
                         <span style="font-size:11px; color:#94a3b8; font-weight:700;">Q #${idQuestaoVisual}</span>
                     </div>
                     <span style="font-size: 11px; font-weight: 800; color: #64748b; display: block; margin-bottom: 4px; text-transform: uppercase;">Dúvida Original do Aluno:</span>
-                    <p style="color:#475569; font-size:13px; font-weight:500; line-height:1.4; margin-bottom:15px;">"${repObj.descricaoOriginal}"</p>
+                    <p style="color:#475569; font-size:13px; font-weight:500; line-height:1.4; margin-bottom:15px;">"${blindarTexto(repObj.descricaoOriginal)}"</p>
                     <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px dashed #cbd5e1;">
                         <span style="font-size: 11px; font-weight: 800; color: #10b981; display: block; margin-bottom: 4px; text-transform: uppercase;">Resposta Enviada:</span>
-                        <p style="color:#0f172a; font-size:14px; font-weight:600; line-height:1.4; margin:0;">"${repObj.respostaEquipe}"</p>
+                        <p style="color:#0f172a; font-size:14px; font-weight:600; line-height:1.4; margin:0;">"${blindarTexto(repObj.respostaEquipe)}"</p>
                     </div>
                 </div>
             `;
