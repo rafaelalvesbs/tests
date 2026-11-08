@@ -164,7 +164,7 @@ window.Router.register('homeconcurseiro', async () => {
                     window.filtrarDisciplinasPeloCargo();
                     if (badgeCargo && cargosDisponiveis[cargoSelecionado]) {
                         badgeCargo.innerHTML = `<i class="fa-solid fa-user-tie" style="margin-right: 8px;"></i>Cargo: ${cargosDisponiveis[cargoSelecionado]}`;
-                        badgeCargo.style.display = 'inline-block';
+                        badgeCargo.style.cssText = "display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); padding: 12px 20px; border-radius: 12px; margin-bottom: 25px; font-size: 15px; font-weight: 700; color: #38bdf8; border: 1px solid rgba(56,189,248,0.2); width: fit-content; margin-left: auto; margin-right: auto; gap: 8px;";
                     } else if (badgeCargo) {
                         badgeCargo.style.display = 'none';
                     }
@@ -1206,6 +1206,13 @@ window.Router.register('homeconcurseiro', async () => {
         }
     };
 
+    const blindarTexto = (texto) => {
+        if (!texto) return '';
+        return String(texto).replace(/[&<>'"]/g, tag => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[tag] || tag));
+    };
+
     window.abrirFeedbacksAluno = () => {
         const container = document.getElementById('lista-feedbacks-aluno');
         if(meusFeedbacks.length === 0) {
@@ -1214,10 +1221,10 @@ window.Router.register('homeconcurseiro', async () => {
             container.innerHTML = meusFeedbacks.map(fb => `
                 <div style="background: #fff; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.02);">
                     <div style="font-size: 11px; font-weight: 800; color: #10b981; margin-bottom: 10px; text-transform: uppercase;">Resposta da Equipe</div>
-                    <p style="color: #334155; font-size: 14px; line-height: 1.5; margin-bottom: 15px;">${fb.respostaEquipe.replace(/\n/g, '<br>')}</p>
+                    <p style="color: #334155; font-size: 14px; line-height: 1.5; margin-bottom: 15px;">${blindarTexto(fb.respostaEquipe).replace(/\n/g, '<br>')}</p>
                     <div style="background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 12px; color: #64748b; border: 1px dashed #cbd5e1; margin-bottom: 15px;">
                         <strong>Seu reporte original:</strong><br>
-                        ${fb.descricaoOriginal}
+                        ${blindarTexto(fb.descricaoOriginal)}
                     </div>
                     <button class="btn-hc-primario" style="width: 100%; max-width: none; padding: 12px;" onclick="window.marcarFeedbackLido('${fb.id}')">OK, ENTENDI</button>
                 </div>
@@ -1496,7 +1503,7 @@ window.Router.register('homeconcurseiro', async () => {
                     <i class="fa-solid fa-spinner fa-spin" style="font-size: 40px; color: #38bdf8;"></i>
                 </div>
 
-                <div id="cargo-atual-badge" style="display: none; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 25px; font-size: 14px; font-weight: 700; color: #38bdf8; border: 1px solid rgba(56,189,248,0.2);"></div>
+                <div id="cargo-atual-badge" style="display: none; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 12px; margin-bottom: 25px; font-size: 14px; font-weight: 700; color: #38bdf8; border: 1px solid rgba(56,189,248,0.2); width: fit-content; margin-left: auto; margin-right: auto;"></div>
                 
                 <button id="btn-iniciar-jornada" class="btn-hc-primario" onclick="window.iniciarJornada()" style="display: none;">INICIAR</button>
             </div>
