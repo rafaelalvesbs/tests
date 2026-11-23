@@ -135,12 +135,18 @@ window.Router.register('homeconcurseiro', async () => {
             const cacheCargoKey = `p4f_cache_cargo_${userAtual.uid}`;
             const cargoSalvoLocal = localStorage.getItem(cacheCargoKey);
 
-            const docConc = await getDoc(doc(db, "concursos", idConcurso));
+            const qAtividades = query(collection(db, "atividades_concursos"), where("concursoId", "==", idConcurso));
+            const qFeedbacks = query(collection(db, "feedbacks_questoes"), where("usuarioId", "==", userAtual.uid), where("lido", "==", false));
+
+            const [docConc, snapAtividades, docCargoSalvo, snapF] = await Promise.all([
+                getDoc(doc(db, "concursos", idConcurso)),
+                getDocs(qAtividades),
+                getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_cargo_fixo`)),
+                getDocs(qFeedbacks)
+            ]);
+
             if (docConc.exists()) {
                 dadosConcurso = { id: docConc.id, ...docConc.data() };
-                
-                const qAtividades = query(collection(db, "atividades_concursos"), where("concursoId", "==", idConcurso));
-                const snapAtividades = await getDocs(qAtividades);
                 
                 todasAtividadesConcurso = [];
                 cargosDisponiveis = {};
@@ -153,7 +159,6 @@ window.Router.register('homeconcurseiro', async () => {
                     }
                 });
 
-                const docCargoSalvo = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_cargo_fixo`));
                 if (docCargoSalvo.exists()) {
                     cargoSelecionado = docCargoSalvo.data().cargoId;
                     localStorage.setItem(cacheCargoKey, cargoSelecionado);
@@ -174,8 +179,6 @@ window.Router.register('homeconcurseiro', async () => {
                     badgeCargo.style.display = 'none';
                 }
 
-                const qFeedbacks = query(collection(db, "feedbacks_questoes"), where("usuarioId", "==", userAtual.uid), where("lido", "==", false));
-                const snapF = await getDocs(qFeedbacks);
                 meusFeedbacks = [];
                 snapF.forEach(docF => {
                     meusFeedbacks.push({ id: docF.id, ...docF.data() });
@@ -1379,7 +1382,7 @@ window.Router.register('homeconcurseiro', async () => {
                 checkSwipe(); 
             }, {passive: true});
         }
-    }, 300);
+    }, 0);
 
     return `
     <style>
