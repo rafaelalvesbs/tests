@@ -22,6 +22,8 @@ window.Router.register('homeconcurseiro', async () => {
     let backupProgresso = null;
     let timerInterval = null;
     let tempoSegundos = 0;
+    let modoRelogio = null;
+    let tempoLimiteSegundos = 0;
     let modoFocoAtivo = false;
     let refazendoErros = false;
     let meusFeedbacks = [];
@@ -633,26 +635,131 @@ window.Router.register('homeconcurseiro', async () => {
         } catch (e) { console.error(e); }
     };
 
-    window.toggleTimer = () => {
-        const btn = document.getElementById('btn-timer');
-        const display = document.getElementById('display-timer');
+    const formatarTempo = (seg) => {
+        const m = Math.floor(seg / 60).toString().padStart(2, '0');
+        const s = (seg % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    };
+
+    const pararIntervaloRelogio = () => {
         if (timerInterval) {
             clearInterval(timerInterval);
             timerInterval = null;
-            btn.style.color = '#64748b';
-            display.style.display = 'none';
-        } else {
+        }
+    };
+
+    const iniciarContagemQuestao = () => {
+        pararIntervaloRelogio();
+        const display = document.getElementById('display-timer');
+        const texto = document.getElementById('texto-timer');
+        const btn = document.getElementById('btn-timer');
+        if (!display || !texto || !modoRelogio) return;
+
+        display.classList.remove('relogio-verde', 'relogio-vermelho', 'tempo-estourado');
+
+        if (modoRelogio === 'cronometro') {
             tempoSegundos = 0;
-            display.innerText = "00:00";
+            texto.innerText = '00:00';
+            display.classList.add('relogio-verde');
             display.style.display = 'flex';
-            btn.style.color = '#f59e0b';
+            if (btn) btn.style.color = '#10b981';
+
             timerInterval = setInterval(() => {
                 tempoSegundos++;
-                const m = Math.floor(tempoSegundos / 60).toString().padStart(2, '0');
-                const s = (tempoSegundos % 60).toString().padStart(2, '0');
-                display.innerText = `${m}:${s}`;
+                texto.innerText = formatarTempo(tempoSegundos);
+            }, 1000);
+        } else if (modoRelogio === 'temporizador') {
+            tempoSegundos = tempoLimiteSegundos;
+            texto.innerText = formatarTempo(tempoSegundos);
+            display.classList.add('relogio-vermelho');
+            display.style.display = 'flex';
+            if (btn) btn.style.color = '#ef4444';
+
+            timerInterval = setInterval(() => {
+                tempoSegundos--;
+                if (tempoSegundos <= 0) {
+                    tempoSegundos = 0;
+                    texto.innerText = '00:00';
+                    pararIntervaloRelogio();
+                    display.classList.add('tempo-estourado');
+                    tocarSom('erro');
+                } else {
+                    texto.innerText = formatarTempo(tempoSegundos);
+                }
             }, 1000);
         }
+    };
+
+    window.abrirMenuRelogio = () => {
+        document.getElementById('modal-escolha-relogio').style.display = 'flex';
+    };
+
+    window.abrirModalCronometro = () => {
+        document.getElementById('modal-escolha-relogio').style.display = 'none';
+        document.getElementById('modal-menu-cronometro').style.display = 'flex';
+    };
+
+    window.explicarCronometro = () => {
+        document.getElementById('modal-menu-cronometro').style.display = 'none';
+        window.showAlertAluno(
+            "Como funciona o Cronômetro?",
+            "Quando ativado, o relógio verde começa a contar automaticamente assim que cada questão é aberta. Ao responder, o tempo pausa para você ver quanto levou e reinicia na próxima questão."
+        );
+    };
+
+    window.ativarCronometro = () => {
+        document.getElementById('modal-menu-cronometro').style.display = 'none';
+        modoRelogio = 'cronometro';
+        iniciarContagemQuestao();
+    };
+
+    window.abrirModalTemporizador = () => {
+        document.getElementById('modal-escolha-relogio').style.display = 'none';
+        document.getElementById('modal-menu-temporizador').style.display = 'flex';
+    };
+
+    window.explicarTemporizador = () => {
+        document.getElementById('modal-menu-temporizador').style.display = 'none';
+        window.showAlertAluno(
+            "Como funciona o Temporizador?",
+            "Você define um tempo limite por questão. O relógio vermelho faz a contagem regressiva e reinicia automaticamente a cada nova questão. Se o tempo zerar, ele avisa piscando e tocando um som, mas você ainda pode concluir a resposta."
+        );
+    };
+
+    window.abrirConfigTemporizador = () => {
+        document.getElementById('modal-menu-temporizador').style.display = 'none';
+        document.getElementById('input-tempo-minutos').value = '';
+        document.getElementById('modal-config-temporizador').style.display = 'flex';
+    };
+
+    window.selecionarTempoPreset = (minutos) => {
+        document.getElementById('input-tempo-minutos').value = minutos;
+    };
+
+    window.confirmarTemporizador = () => {
+        const valor = parseInt(document.getElementById('input-tempo-minutos').value, 10);
+        if (!valor || valor < 1) {
+            window.showAlertAluno("Tempo inválido", "Escolha uma das opções ou digite um tempo a partir de 1 minuto.", "error");
+            return;
+        }
+        tempoLimiteSegundos = valor * 60;
+        modoRelogio = 'temporizador';
+        document.getElementById('modal-config-temporizador').style.display = 'none';
+        iniciarContagemQuestao();
+    };
+
+    window.desativarRelogio = () => {
+        pararIntervaloRelogio();
+        modoRelogio = null;
+        document.getElementById('modal-menu-cronometro').style.display = 'none';
+        document.getElementById('modal-menu-temporizador').style.display = 'none';
+        const display = document.getElementById('display-timer');
+        const btn = document.getElementById('btn-timer');
+        if (display) {
+            display.style.display = 'none';
+            display.classList.remove('relogio-verde', 'relogio-vermelho', 'tempo-estourado');
+        }
+        if (btn) btn.style.color = '#64748b';
     };
 
     window.toggleFavorito = () => {
@@ -809,7 +916,12 @@ window.Router.register('homeconcurseiro', async () => {
         questaoRespondidaAgora = false;
         questaoAtual = questoesPendentes[0];
         
-        if (ehModoRevisao) questaoRespondidaAgora = true;
+        if (ehModoRevisao) {
+            questaoRespondidaAgora = true;
+            pararIntervaloRelogio();
+        } else if (modoRelogio) {
+            iniciarContagemQuestao();
+        }
         
         document.getElementById('fim-disciplina').style.display = 'none';
         document.getElementById('area-resolucao').style.display = 'block';
@@ -1111,6 +1223,7 @@ window.Router.register('homeconcurseiro', async () => {
     window.responderQuestao = async (letraSelecionada) => {
         if (questaoRespondidaAgora) return;
         questaoRespondidaAgora = true;
+        pararIntervaloRelogio();
 
         const correta = questaoAtual.correta.toUpperCase();
         const acertou = letraSelecionada === correta;
@@ -1333,6 +1446,11 @@ window.Router.register('homeconcurseiro', async () => {
         .q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .q-tag-concurso { background: #0f172a; color: white; padding: 6px 12px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
         .q-progresso-badge { font-size: 12px; font-weight: 800; color: #64748b; background: #e2e8f0; padding: 6px 12px; border-radius: 8px; }
+        .relogio-badge { display: none; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; padding: 6px 12px; border-radius: 8px; margin-right: 8px; letter-spacing: 0.5px; }
+        .relogio-verde { background: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; }
+        .relogio-vermelho { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
+        @keyframes piscarAlerta { 0%, 100% { background: #ef4444; color: #fff; } 50% { background: #fef2f2; color: #ef4444; } }
+        .tempo-estourado { animation: piscarAlerta 0.8s infinite; }
         
         .q-actions { display: flex; justify-content: flex-end; margin-bottom: 15px; gap: 10px; }
         .btn-acao-q { background: #fff; border: 1px solid #e2e8f0; width: 40px; height: 40px; border-radius: 10px; color: #64748b; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; transition: 0.2s; }
@@ -1415,6 +1533,69 @@ window.Router.register('homeconcurseiro', async () => {
                 <select id="select-filtro-assunto" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; outline: none;"></select>
                 <div style="display:flex; flex-direction: column; gap:10px;">
                     <button class="btn-modal-aluno" style="background:#8b5cf6; margin-top:0;" onclick="window.iniciarFiltroPorAssunto()">FILTRAR QUESTÕES</button>
+                    <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="this.closest('.modal-aluno').style.display='none'">CANCELAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL ESCOLHA RELOGIO -->
+        <div id="modal-escolha-relogio" class="modal-aluno">
+            <div class="modal-aluno-content">
+                <div style="font-size: 36px; color: #0f172a; margin-bottom: 12px;"><i class="fa-solid fa-clock"></i></div>
+                <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900; margin-bottom: 18px;">Controle de Tempo</h3>
+                <div style="display:flex; flex-direction: column; gap:12px;">
+                    <button class="btn-modal-aluno" style="background:#10b981; margin-top:0; font-size:13px; line-height:1.4; padding:14px;" onclick="window.abrirModalCronometro()">Deseja contar o tempo em que você resolve cada questão?</button>
+                    <button class="btn-modal-aluno" style="background:#ef4444; margin-top:0; font-size:13px; line-height:1.4; padding:14px;" onclick="window.abrirModalTemporizador()">Deseja limitar o tempo para resolver cada questão?</button>
+                    <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:4px;" onclick="this.closest('.modal-aluno').style.display='none'">FECHAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL MENU CRONOMETRO -->
+        <div id="modal-menu-cronometro" class="modal-aluno">
+            <div class="modal-aluno-content">
+                <div style="font-size: 36px; color: #10b981; margin-bottom: 10px;"><i class="fa-solid fa-stopwatch"></i></div>
+                <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900; margin-bottom: 15px;">Cronômetro</h3>
+                <div style="display:flex; flex-direction: column; gap:10px;">
+                    <button class="btn-modal-aluno" style="background:#0f172a; margin-top:0;" onclick="window.explicarCronometro()">COMO FUNCIONA?</button>
+                    <button class="btn-modal-aluno" style="background:#10b981; margin-top:0;" onclick="window.ativarCronometro()">ATIVAR</button>
+                    <button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.desativarRelogio()">DESATIVAR</button>
+                    <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:4px;" onclick="this.closest('.modal-aluno').style.display='none'">VOLTAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL MENU TEMPORIZADOR -->
+        <div id="modal-menu-temporizador" class="modal-aluno">
+            <div class="modal-aluno-content">
+                <div style="font-size: 36px; color: #ef4444; margin-bottom: 10px;"><i class="fa-solid fa-hourglass-half"></i></div>
+                <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900; margin-bottom: 15px;">Temporizador</h3>
+                <div style="display:flex; flex-direction: column; gap:10px;">
+                    <button class="btn-modal-aluno" style="background:#0f172a; margin-top:0;" onclick="window.explicarTemporizador()">COMO FUNCIONA?</button>
+                    <button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.abrirConfigTemporizador()">ATIVAR</button>
+                    <button class="btn-modal-aluno" style="background:#64748b; margin-top:0;" onclick="window.desativarRelogio()">DESATIVAR</button>
+                    <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:4px;" onclick="this.closest('.modal-aluno').style.display='none'">VOLTAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL CONFIG TEMPORIZADOR -->
+        <div id="modal-config-temporizador" class="modal-aluno">
+            <div class="modal-aluno-content">
+                <div style="font-size: 34px; color: #ef4444; margin-bottom: 10px;"><i class="fa-solid fa-hourglass-start"></i></div>
+                <h3 style="color:#0f172a; margin-top:0; font-size: 19px; font-weight: 900;">Tempo por Questão</h3>
+                <p style="color:#64748b; font-size: 13px; margin-bottom:15px; line-height:1.4;">A partir de agora, cada questão terá contagem regressiva. O tempo só começa quando você clicar em Começar.</p>
+                
+                <div style="display:flex; gap:8px; margin-bottom:12px;">
+                    <button type="button" onclick="window.selecionarTempoPreset(1)" style="flex:1; padding:10px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; font-weight:800; color:#0f172a; cursor:pointer;">1 min</button>
+                    <button type="button" onclick="window.selecionarTempoPreset(2)" style="flex:1; padding:10px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; font-weight:800; color:#0f172a; cursor:pointer;">2 min</button>
+                    <button type="button" onclick="window.selecionarTempoPreset(3)" style="flex:1; padding:10px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; font-weight:800; color:#0f172a; cursor:pointer;">3 min</button>
+                </div>
+
+                <input type="number" id="input-tempo-minutos" min="1" max="60" placeholder="Ou digite os minutos (ex: 4)" autocomplete="off" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 18px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; text-align:center; outline: none;">
+
+                <div style="display:flex; flex-direction: column; gap:10px;">
+                    <button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.confirmarTemporizador()">OK, COMEÇAR</button>
                     <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="this.closest('.modal-aluno').style.display='none'">CANCELAR</button>
                 </div>
             </div>
@@ -1568,17 +1749,16 @@ window.Router.register('homeconcurseiro', async () => {
                 <button class="btn-hc-primario" onclick="window.abrirDisciplinas()">ESCOLHER OUTRA DISCIPLINA</button>
             </div>
 
-            <div id="area-resolucao" style="display:none;">
-                <div class="q-header">
+            <div class="q-header">
                     <button onclick="window.abrirDisciplinas()" style="background:none; border:none; color:#64748b; font-weight:700; cursor:pointer; font-size:14px; margin-right: 15px;"><i class="fa-solid fa-arrow-left"></i></button>
                     <div class="q-tag-concurso" id="q-concurso-nome">PF 2026</div>
                     <div style="flex:1;"></div>
+                    <div id="display-timer" class="relogio-badge"><i class="fa-solid fa-clock"></i> <span id="texto-timer">00:00</span></div>
                     <div class="q-progresso-badge" id="q-progresso">1 / 100</div>
                 </div>
 
                 <div class="q-actions">
-                    <div id="display-timer" style="display:none; align-items:center; background:#fff; border:1px solid #e2e8f0; padding:0 12px; border-radius:10px; color:#f59e0b; font-weight:800; font-size:14px; letter-spacing:1px; height:40px;">00:00</div>
-                    <button id="btn-timer" class="btn-acao-q" onclick="window.toggleTimer()" title="Cronômetro" style="color:#64748b;"><i class="fa-solid fa-clock"></i></button>
+                    <button id="btn-timer" class="btn-acao-q" onclick="window.abrirMenuRelogio()" title="Tempo" style="color:#64748b;"><i class="fa-solid fa-clock"></i></button>
                     <button id="btn-fav-q" class="btn-acao-q" onclick="window.toggleFavorito()" title="Favoritar Questão" style="color:#64748b;"><i class="fa-solid fa-star"></i></button>
                     <button class="btn-acao-q" onclick="window.abrirModalReporte()" title="Reportar Erro" style="color:#64748b;"><i class="fa-solid fa-triangle-exclamation"></i></button>
                     <button class="btn-acao-q" onclick="window.abrirModalFiltroDisciplina()" title="Filtrar por Disciplina" style="color:#3b82f6;"><span style="font-weight:900; font-family:'Plus Jakarta Sans',sans-serif;">D</span></button>
