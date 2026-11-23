@@ -1749,7 +1749,8 @@ window.Router.register('homeconcurseiro', async () => {
                 <button class="btn-hc-primario" onclick="window.abrirDisciplinas()">ESCOLHER OUTRA DISCIPLINA</button>
             </div>
 
-            <div class="q-header">
+            <div id="area-resolucao" style="display:none;">
+                <div class="q-header">
                     <button onclick="window.abrirDisciplinas()" style="background:none; border:none; color:#64748b; font-weight:700; cursor:pointer; font-size:14px; margin-right: 15px;"><i class="fa-solid fa-arrow-left"></i></button>
                     <div class="q-tag-concurso" id="q-concurso-nome">PF 2026</div>
                     <div style="flex:1;"></div>
