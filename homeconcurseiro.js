@@ -24,6 +24,7 @@ window.Router.register('homeconcurseiro', async () => {
     let tempoSegundos = 0;
     let modoRelogio = null;
     let tempoLimiteSegundos = 0;
+    let tempoEstouradoAgora = false;
     let modoFocoAtivo = false;
     let refazendoErros = false;
     let meusFeedbacks = [];
@@ -93,14 +94,24 @@ window.Router.register('homeconcurseiro', async () => {
     const nomeCompleto = userInfo.nome || "Concurseiro";
     const primeiroNome = nomeCompleto.split(' ')[0];
 
-    window.showAlertAluno = (titulo, mensagem, tipo = 'info') => {
+   let acaoFecharAlerta = null;
+
+    window.showAlertAluno = (titulo, mensagem, tipo = 'info', aoFechar = null) => {
         const modal = document.getElementById('modal-alert-aluno');
         document.getElementById('alert-title-aluno').innerText = titulo;
         document.getElementById('alert-msg-aluno').innerHTML = mensagem;
         document.getElementById('alert-icon-aluno').innerHTML = tipo === 'error' ? '<i class="fa-solid fa-circle-xmark" style="color:#ef4444; font-size:40px;"></i>' : '<i class="fa-solid fa-circle-check" style="color:#10b981; font-size:40px;"></i>';
+        acaoFecharAlerta = aoFechar;
         modal.style.display = 'flex';
     };
-    window.closeAlertAluno = () => { document.getElementById('modal-alert-aluno').style.display = 'none'; };
+    window.closeAlertAluno = () => {
+        document.getElementById('modal-alert-aluno').style.display = 'none';
+        if (acaoFecharAlerta) {
+            const fn = acaoFecharAlerta;
+            acaoFecharAlerta = null;
+            fn();
+        }
+    };
 
     window.showConfirmAluno = (titulo, mensagem, onConfirm) => {
         const modal = document.getElementById('modal-confirm-aluno');
@@ -659,6 +670,8 @@ window.Router.register('homeconcurseiro', async () => {
         if (!display || !texto || !modoRelogio) return;
 
         display.classList.remove('relogio-verde', 'relogio-vermelho', 'tempo-estourado');
+        const cardQ = document.getElementById('card-questao-atual');
+        if (cardQ) cardQ.classList.remove('card-tempo-estourado');
 
         if (modoRelogio === 'cronometro') {
             tempoSegundos = 0;
@@ -672,6 +685,7 @@ window.Router.register('homeconcurseiro', async () => {
                 texto.innerText = formatarTempo(tempoSegundos);
             }, 1000);
         } else if (modoRelogio === 'temporizador') {
+            tempoEstouradoAgora = false;
             tempoSegundos = tempoLimiteSegundos;
             texto.innerText = formatarTempo(tempoSegundos);
             display.classList.add('relogio-vermelho');
@@ -682,9 +696,12 @@ window.Router.register('homeconcurseiro', async () => {
                 tempoSegundos--;
                 if (tempoSegundos <= 0) {
                     tempoSegundos = 0;
+                    tempoEstouradoAgora = true;
                     texto.innerText = '00:00';
                     pararIntervaloRelogio();
                     display.classList.add('tempo-estourado');
+                    const cardAtual = document.getElementById('card-questao-atual');
+                    if (cardAtual) cardAtual.classList.add('card-tempo-estourado');
                     tocarSom('erro');
                 } else {
                     texto.innerText = formatarTempo(tempoSegundos);
@@ -706,7 +723,11 @@ window.Router.register('homeconcurseiro', async () => {
         document.getElementById('modal-menu-cronometro').style.display = 'none';
         window.showAlertAluno(
             "Como funciona o Cronômetro?",
-            "Quando ativado, o relógio verde começa a contar automaticamente assim que cada questão é aberta. Ao responder, o tempo pausa para você ver quanto levou e reinicia na próxima questão."
+            "Quando ativado, o relógio verde começa a contar automaticamente assim que cada questão é aberta. Ao responder, o tempo pausa para você ver quanto levou e reinicia na próxima questão.",
+            "info",
+            () => {
+                document.getElementById('modal-menu-cronometro').style.display = 'flex';
+            }
         );
     };
 
@@ -725,7 +746,11 @@ window.Router.register('homeconcurseiro', async () => {
         document.getElementById('modal-menu-temporizador').style.display = 'none';
         window.showAlertAluno(
             "Como funciona o Temporizador?",
-            "Você define um tempo limite por questão. O relógio vermelho faz a contagem regressiva e reinicia automaticamente a cada nova questão. Se o tempo zerar, ele avisa piscando e tocando um som, mas você ainda pode concluir a resposta."
+            "Você define um tempo limite por questão. O relógio vermelho faz a contagem regressiva e reinicia automaticamente a cada nova questão. Se o tempo zerar, ele avisa piscando e tocando um som, mas você ainda pode concluir a resposta.",
+            "info",
+            () => {
+                document.getElementById('modal-menu-temporizador').style.display = 'flex';
+            }
         );
     };
 
@@ -762,6 +787,8 @@ window.Router.register('homeconcurseiro', async () => {
             display.style.display = 'none';
             display.classList.remove('relogio-verde', 'relogio-vermelho', 'tempo-estourado');
         }
+        const cardAtual = document.getElementById('card-questao-atual');
+        if (cardAtual) cardAtual.classList.remove('card-tempo-estourado');
         if (btn) btn.style.color = '#64748b';
     };
 
@@ -1000,8 +1027,8 @@ window.Router.register('homeconcurseiro', async () => {
             `;
         }
 
-        containerQuestao.innerHTML = `
-            <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+containerQuestao.innerHTML = `
+            <div id="card-questao-atual" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
                 <div style="margin-bottom: 10px; display: flex; align-items: center;">
                     <span style="display: inline-block; padding: 2px 10px; background: #0f172a; color: #fff; border-radius: 6px; font-size: 11px; font-weight: 800;">QUESTÃO ${numQuestaoVisual}</span>
                     ${headerQuestaoAdicional}
@@ -1043,7 +1070,10 @@ window.Router.register('homeconcurseiro', async () => {
         if (tipo === 'grafico') {
             const containerLista = document.getElementById('lista-revisao-conteudo');
             const tituloRevisao = document.getElementById('titulo-revisao');
-            tituloRevisao.innerText = 'Seu Aproveitamento';
+            tituloRevisao.innerText = 'Gráficos';
+
+            const histKey = `p4f_hist_tempo_${userAtual.uid}_${dadosConcurso.id}`;
+            const obterRegistrosTempo = () => JSON.parse(localStorage.getItem(histKey) || '[]');
 
             window.renderizarGraficoFiltrado = (filtroD) => {
                 let tAcertos = 0;
@@ -1072,9 +1102,9 @@ window.Router.register('homeconcurseiro', async () => {
                 }
 
                 const boxG = document.getElementById('container-desenho-grafico');
-                if(!boxG) return;
+                if (!boxG) return;
                 
-                if(tFeitas === 0) {
+                if (tFeitas === 0) {
                     boxG.innerHTML = '<p style="text-align:center; color:#64748b; font-size:14px; padding:20px;">Nenhuma questão resolvida neste filtro.</p>';
                     return;
                 }
@@ -1101,24 +1131,221 @@ window.Router.register('homeconcurseiro', async () => {
                 `;
             };
 
-            let opts = '<option value="TODAS">TODAS AS DISCIPLINAS</option>';
-            disciplinasAtuais.forEach(d => {
-                const sel = (disciplinaSelecionada === d) ? 'selected' : '';
-                opts += `<option value="${d}" ${sel}>${d}</option>`;
-            });
-            
+            const filtrarPorPeriodo = (lista, periodo) => {
+                const agora = new Date();
+                const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate()).getTime();
+                if (periodo === 'diario') return lista.filter(r => r.data >= inicioHoje);
+                if (periodo === 'semanal') return lista.filter(r => r.data >= inicioHoje - (6 * 86400000));
+                return lista.filter(r => r.data >= inicioHoje - (29 * 86400000));
+            };
+
+            window.renderizarGraficoTempo = (modo, periodo) => {
+                const area = document.getElementById('conteudo-grafico-tempo');
+                if (!area) return;
+
+                document.querySelectorAll('.btn-periodo').forEach(b => {
+                    b.classList.remove('ativo-verde', 'ativo-vermelho');
+                    if (b.dataset.periodo === periodo) {
+                        b.classList.add(modo === 'cronometro' ? 'ativo-verde' : 'ativo-vermelho');
+                    }
+                });
+
+                const todos = obterRegistrosTempo().filter(r => r.modo === modo);
+                const filtrados = filtrarPorPeriodo(todos, periodo);
+
+                if (filtrados.length === 0) {
+                    area.innerHTML = '<p style="text-align:center; color:#64748b; font-size:14px; padding:25px;">Nenhum registro neste período ainda.</p>';
+                    return;
+                }
+
+                if (modo === 'cronometro') {
+                    const totalSeg = filtrados.reduce((acc, r) => acc + (r.segundos || 0), 0);
+                    const mediaSeg = Math.round(totalSeg / filtrados.length);
+
+                    const grupos = {};
+                    filtrados.forEach(r => {
+                        let chave = '';
+                        const d = new Date(r.data);
+                        if (periodo === 'diario') {
+                            chave = r.disciplina || 'Geral';
+                        } else if (periodo === 'semanal') {
+                            chave = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                        } else {
+                            const sem = Math.ceil(d.getDate() / 7);
+                            chave = `Semana ${sem}`;
+                        }
+                        if (!grupos[chave]) grupos[chave] = { soma: 0, qtd: 0 };
+                        grupos[chave].soma += (r.segundos || 0);
+                        grupos[chave].qtd += 1;
+                    });
+
+                    const itens = Object.keys(grupos).map(k => ({
+                        label: k,
+                        media: Math.round(grupos[k].soma / grupos[k].qtd),
+                        qtd: grupos[k].qtd
+                    }));
+                    const maxMedia = Math.max(...itens.map(i => i.media), 1);
+
+                    const htmlBarras = itens.map(i => {
+                        const pct = Math.max(8, Math.round((i.media / maxMedia) * 100));
+                        return `
+                            <div class="barra-linha">
+                                <div class="barra-topo">
+                                    <span>${i.label} (${i.qtd}q)</span>
+                                    <span style="color:#10b981;">${formatarTempo(i.media)} / q</span>
+                                </div>
+                                <div class="barra-trilha">
+                                    <div class="barra-fill-verde" style="width:${pct}%;"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    area.innerHTML = `
+                        <div class="resumo-tempo-grid">
+                            <div class="resumo-tempo-card">
+                                <div class="resumo-tempo-val" style="color:#10b981;">${formatarTempo(mediaSeg)}</div>
+                                <div class="resumo-tempo-lbl">Média / Questão</div>
+                            </div>
+                            <div class="resumo-tempo-card">
+                                <div class="resumo-tempo-val">${filtrados.length}</div>
+                                <div class="resumo-tempo-lbl">Questões</div>
+                            </div>
+                            <div class="resumo-tempo-card">
+                                <div class="resumo-tempo-val">${formatarTempo(totalSeg)}</div>
+                                <div class="resumo-tempo-lbl">Tempo Total</div>
+                            </div>
+                        </div>
+                        <div class="barras-box">${htmlBarras}</div>
+                    `;
+                } else {
+                    const noPrazo = filtrados.filter(r => !r.estourou).length;
+                    const estouradas = filtrados.length - noPrazo;
+                    const pctOk = Math.round((noPrazo / filtrados.length) * 100);
+                    const pctEst = 100 - pctOk;
+
+                    if (periodo === 'diario') {
+                        area.innerHTML = `
+                            <div class="resumo-tempo-grid">
+                                <div class="resumo-tempo-card">
+                                    <div class="resumo-tempo-val" style="color:#10b981;">${pctOk}%</div>
+                                    <div class="resumo-tempo-lbl">No Prazo</div>
+                                </div>
+                                <div class="resumo-tempo-card">
+                                    <div class="resumo-tempo-val" style="color:#10b981;">${noPrazo}</div>
+                                    <div class="resumo-tempo-lbl">Dentro</div>
+                                </div>
+                                <div class="resumo-tempo-card">
+                                    <div class="resumo-tempo-val" style="color:#ef4444;">${estouradas}</div>
+                                    <div class="resumo-tempo-lbl">Estouradas</div>
+                                </div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; align-items:center; padding:15px 10px; background:#fff; border-radius:14px; border:1px solid #e2e8f0;">
+                                <div style="width: 180px; height: 180px; border-radius: 50%; background: conic-gradient(#10b981 0% ${pctOk}%, #ef4444 ${pctOk}% 100%); margin-bottom: 18px;"></div>
+                                <div style="display:flex; gap:24px; font-size:12px; font-weight:800;">
+                                    <span style="color:#10b981;">No prazo: ${pctOk}%</span>
+                                    <span style="color:#ef4444;">Estouradas: ${pctEst}%</span>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        const grupos = {};
+                        filtrados.forEach(r => {
+                            const d = new Date(r.data);
+                            const chave = periodo === 'semanal'
+                                ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                                : `Semana ${Math.ceil(d.getDate() / 7)}`;
+                            if (!grupos[chave]) grupos[chave] = { ok: 0, est: 0 };
+                            if (r.estourou) grupos[chave].est += 1;
+                            else grupos[chave].ok += 1;
+                        });
+
+                        const htmlBarras = Object.keys(grupos).map(k => {
+                            const g = grupos[k];
+                            const tot = g.ok + g.est;
+                            const pOk = Math.round((g.ok / tot) * 100);
+                            const pEst = 100 - pOk;
+                            return `
+                                <div class="barra-linha">
+                                    <div class="barra-topo">
+                                        <span>${k}</span>
+                                        <span><strong style="color:#10b981;">${g.ok} ok</strong> / <strong style="color:#ef4444;">${g.est} est.</strong></span>
+                                    </div>
+                                    <div class="barra-trilha">
+                                        <div class="barra-fill-verde" style="width:${pOk}%;"></div>
+                                        <div class="barra-fill-vermelho" style="width:${pEst}%;"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+
+                        area.innerHTML = `
+                            <div class="resumo-tempo-grid">
+                                <div class="resumo-tempo-card">
+                                    <div class="resumo-tempo-val" style="color:#10b981;">${pctOk}%</div>
+                                    <div class="resumo-tempo-lbl">No Prazo</div>
+                                </div>
+                                <div class="resumo-tempo-card">
+                                    <div class="resumo-tempo-val" style="color:#10b981;">${noPrazo}</div>
+                                    <div class="resumo-tempo-lbl">Dentro</div>
+                                </div>
+                                <div class="resumo-tempo-card">
+                                    <div class="resumo-tempo-val" style="color:#ef4444;">${estouradas}</div>
+                                    <div class="resumo-tempo-lbl">Estouradas</div>
+                                </div>
+                            </div>
+                            <div class="barras-box">${htmlBarras}</div>
+                        `;
+                    }
+                }
+            };
+
+            window.trocarAbaGraficos = (aba) => {
+                document.querySelectorAll('.aba-graf-btn').forEach(b => {
+                    b.classList.toggle('ativa', b.dataset.aba === aba);
+                });
+
+                const areaAba = document.getElementById('area-aba-graficos');
+                if (aba === 'aproveitamento') {
+                    let opts = '<option value="TODAS">TODAS AS DISCIPLINAS</option>';
+                    disciplinasAtuais.forEach(d => {
+                        const sel = (disciplinaSelecionada === d) ? 'selected' : '';
+                        opts += `<option value="${d}" ${sel}>${d}</option>`;
+                    });
+                    areaAba.innerHTML = `
+                        <div style="margin-bottom: 20px;">
+                            <label style="font-size:12px; font-weight:700; color:#64748b; display:block; margin-bottom:8px;">Filtrar Aproveitamento:</label>
+                            <select id="sel-filtro-grafico" onchange="window.renderizarGraficoFiltrado(this.value)" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; outline: none; background: #fff;">
+                                ${opts}
+                            </select>
+                        </div>
+                        <div id="container-desenho-grafico"></div>
+                    `;
+                    const inicioFiltro = (disciplinasAtuais.includes(disciplinaSelecionada)) ? disciplinaSelecionada : 'TODAS';
+                    window.renderizarGraficoFiltrado(inicioFiltro);
+                } else {
+                    areaAba.innerHTML = `
+                        <div class="filtros-periodo">
+                            <button class="btn-periodo" data-periodo="diario" onclick="window.renderizarGraficoTempo('${aba}', 'diario')">Diário</button>
+                            <button class="btn-periodo" data-periodo="semanal" onclick="window.renderizarGraficoTempo('${aba}', 'semanal')">Semanal</button>
+                            <button class="btn-periodo" data-periodo="mensal" onclick="window.renderizarGraficoTempo('${aba}', 'mensal')">Mensal</button>
+                        </div>
+                        <div id="conteudo-grafico-tempo"></div>
+                    `;
+                    window.renderizarGraficoTempo(aba, 'diario');
+                }
+            };
+
             containerLista.innerHTML = `
-                <div style="margin-bottom: 20px;">
-                    <label style="font-size:12px; font-weight:700; color:#64748b; display:block; margin-bottom:8px;">Filtrar Aproveitamento:</label>
-                    <select id="sel-filtro-grafico" onchange="window.renderizarGraficoFiltrado(this.value)" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; outline: none; background: #fff;">
-                        ${opts}
-                    </select>
+                <div class="abas-graficos">
+                    <button class="aba-graf-btn ativa" data-aba="aproveitamento" onclick="window.trocarAbaGraficos('aproveitamento')">Aproveitamento</button>
+                    <button class="aba-graf-btn" data-aba="cronometro" onclick="window.trocarAbaGraficos('cronometro')">Cronômetro</button>
+                    <button class="aba-graf-btn" data-aba="temporizador" onclick="window.trocarAbaGraficos('temporizador')">Temporizador</button>
                 </div>
-                <div id="container-desenho-grafico"></div>
+                <div id="area-aba-graficos"></div>
             `;
-            
-            const inicioFiltro = (disciplinasAtuais.includes(disciplinaSelecionada)) ? disciplinaSelecionada : 'TODAS';
-            window.renderizarGraficoFiltrado(inicioFiltro);
+
+            window.trocarAbaGraficos('aproveitamento');
             window.irParaView('view-revisao');
         } else if (tipo === 'erros') {
             window.refazerTodasErradas();
@@ -1223,10 +1450,38 @@ window.Router.register('homeconcurseiro', async () => {
         window.irParaView('view-questoes');
     };
 
-    window.responderQuestao = async (letraSelecionada) => {
+   window.responderQuestao = async (letraSelecionada) => {
         if (questaoRespondidaAgora) return;
         questaoRespondidaAgora = true;
         pararIntervaloRelogio();
+
+        const cardAtual = document.getElementById('card-questao-atual');
+        if (cardAtual) cardAtual.classList.remove('card-tempo-estourado');
+        const displayTimer = document.getElementById('display-timer');
+        if (displayTimer) displayTimer.classList.remove('tempo-estourado');
+
+        if (modoRelogio === 'cronometro' || modoRelogio === 'temporizador') {
+            const histKey = `p4f_hist_tempo_${userAtual.uid}_${dadosConcurso.id}`;
+            const histAtual = JSON.parse(localStorage.getItem(histKey) || '[]');
+            const tempoGasto = modoRelogio === 'cronometro'
+                ? tempoSegundos
+                : (tempoEstouradoAgora ? tempoLimiteSegundos : Math.max(0, tempoLimiteSegundos - tempoSegundos));
+
+            histAtual.push({
+                modo: modoRelogio,
+                disciplina: disciplinaSelecionada,
+                segundos: tempoGasto,
+                estourou: modoRelogio === 'temporizador' ? tempoEstouradoAgora : false,
+                data: Date.now()
+            });
+
+            localStorage.setItem(histKey, JSON.stringify(histAtual));
+            setDoc(
+                doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_hist_tempo`),
+                { registros: histAtual },
+                { merge: true }
+            ).catch(() => {});
+        }
 
         const correta = questaoAtual.correta.toUpperCase();
         const acertou = letraSelecionada === correta;
@@ -1452,8 +1707,27 @@ window.Router.register('homeconcurseiro', async () => {
         .relogio-badge { display: none; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; padding: 6px 12px; border-radius: 8px; margin-right: 8px; letter-spacing: 0.5px; }
         .relogio-verde { background: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; }
         .relogio-vermelho { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
-        @keyframes piscarAlerta { 0%, 100% { background: #ef4444; color: #fff; } 50% { background: #fef2f2; color: #ef4444; } }
+       @keyframes piscarAlerta { 0%, 100% { background: #ef4444; color: #fff; } 50% { background: #fef2f2; color: #ef4444; } }
         .tempo-estourado { animation: piscarAlerta 0.8s infinite; }
+        @keyframes piscarCardVermelho { 0%, 100% { background-color: #ffffff; border-color: #e2e8f0; } 50% { background-color: #fee2e2; border-color: #fca5a5; } }
+       .card-tempo-estourado { animation: piscarCardVermelho 0.8s infinite; }
+        .abas-graficos { display: flex; gap: 6px; margin-bottom: 18px; background: #e2e8f0; padding: 5px; border-radius: 12px; }
+        .aba-graf-btn { flex: 1; border: none; background: transparent; padding: 10px 6px; border-radius: 9px; font-size: 12px; font-weight: 800; color: #64748b; cursor: pointer; transition: 0.2s; }
+        .aba-graf-btn.ativa { background: #fff; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+        .filtros-periodo { display: flex; gap: 8px; margin-bottom: 18px; }
+        .btn-periodo { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 12px; font-weight: 700; color: #475569; cursor: pointer; }
+        .btn-periodo.ativo-verde { background: #10b981; color: #fff; border-color: #10b981; }
+        .btn-periodo.ativo-vermelho { background: #ef4444; color: #fff; border-color: #ef4444; }
+        .resumo-tempo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+        .resumo-tempo-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 8px; text-align: center; }
+        .resumo-tempo-val { font-size: 16px; font-weight: 900; color: #0f172a; }
+        .resumo-tempo-lbl { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-top: 4px; }
+        .barras-box { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; }
+        .barra-linha { margin-bottom: 12px; }
+        .barra-topo { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 5px; }
+        .barra-trilha { width: 100%; height: 12px; background: #f1f5f9; border-radius: 99px; overflow: hidden; display: flex; }
+        .barra-fill-verde { background: #10b981; height: 100%; transition: width 0.3s; }
+        .barra-fill-vermelho { background: #ef4444; height: 100%; transition: width 0.3s; }
         
         .q-actions { display: flex; justify-content: flex-end; margin-bottom: 15px; gap: 10px; }
         .btn-acao-q { background: #fff; border: 1px solid #e2e8f0; width: 40px; height: 40px; border-radius: 10px; color: #64748b; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; transition: 0.2s; }
@@ -1787,7 +2061,7 @@ window.Router.register('homeconcurseiro', async () => {
                     </button>
                     <button class="stat-btn" onclick="window.abrirModoRevisao('grafico')">
                         <span class="stat-valor" id="stat-pct" style="color: #3b82f6;">0%</span>
-                        <span class="stat-label" style="color: #3b82f6;">Gráfico</span>
+                        <span class="stat-label" style="color: #3b82f6;">Gráficos</span>
                     </button>
                 </div>
 
