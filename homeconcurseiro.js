@@ -839,6 +839,81 @@ window.Router.register('homeconcurseiro', async () => {
         return temp.join('');
     };
 
+    let etapaReporteAtual = 1;
+
+    const desenharCaptchaCanvas = (codigo) => {
+        const canvas = document.getElementById('canvas-captcha-rep');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < 4; i++) {
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.25)';
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+            ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+            ctx.stroke();
+        }
+
+        ctx.font = '900 24px monospace';
+        ctx.fillStyle = '#0f172a';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(codigo.split('').join(' '), canvas.width / 2, canvas.height / 2);
+    };
+
+    const mostrarEtapaReporte = (num) => {
+        etapaReporteAtual = num;
+        for (let i = 1; i <= 7; i++) {
+            const el = document.getElementById(`rep-step-${i}`);
+            if (el) el.style.display = (i === num) ? 'block' : 'none';
+        }
+        const ind = document.getElementById('rep-indicador-etapa');
+        if (ind) ind.innerText = `Etapa ${num} de 7`;
+    };
+
+    window.avancarEtapaReporte = (proxima) => {
+        if (etapaReporteAtual === 1 && !document.getElementById('rep-q1').value) {
+            window.showAlertAluno("Campo Obrigatório", "Selecione qual o erro principal.", "error");
+            return;
+        }
+        if (etapaReporteAtual === 2 && !document.getElementById('rep-q2').value) {
+            window.showAlertAluno("Campo Obrigatório", "Informe se o enunciado está claro.", "error");
+            return;
+        }
+        if (etapaReporteAtual === 3 && !document.getElementById('rep-q3').value) {
+            window.showAlertAluno("Campo Obrigatório", "Informe se as alternativas estão condizentes.", "error");
+            return;
+        }
+        if (etapaReporteAtual === 4 && !document.getElementById('rep-q4').value) {
+            window.showAlertAluno("Campo Obrigatório", "Informe se verificou a legislação/fonte.", "error");
+            return;
+        }
+        if (etapaReporteAtual === 5 && !document.getElementById('rep-form-desc').value.trim()) {
+            window.showAlertAluno("Campo Obrigatório", "Descreva o erro antes de avançar.", "error");
+            return;
+        }
+        if (etapaReporteAtual === 6) {
+            const nome = document.getElementById('rep-form-nome').value.trim();
+            const email = document.getElementById('rep-form-email').value.trim();
+            const tel = document.getElementById('rep-form-tel').value.trim();
+            if (!nome || !email || !tel) {
+                window.showAlertAluno("Campos Incompletos", "Preencha seu nome, e-mail e telefone.", "error");
+                return;
+            }
+        }
+        mostrarEtapaReporte(proxima);
+        if (proxima === 7) {
+            desenharCaptchaCanvas(window.senhaCaptchaGerada);
+        }
+    };
+
+    window.voltarEtapaReporte = (anterior) => {
+        mostrarEtapaReporte(anterior);
+    };
+
     window.abrirModalReporte = () => {
         if (!questaoAtual) {
             window.showAlertAluno("Erro", "Nenhuma questão carregada para reportar.", "error");
@@ -846,7 +921,6 @@ window.Router.register('homeconcurseiro', async () => {
         }
         
         window.senhaCaptchaGerada = window.gerarSenhaCaptcha();
-        document.getElementById('senha-mostrada-captcha').innerText = window.senhaCaptchaGerada;
 
         document.getElementById('rep-q1').value = '';
         document.getElementById('rep-q2').value = '';
@@ -859,6 +933,7 @@ window.Router.register('homeconcurseiro', async () => {
         document.getElementById('rep-form-senha').value = '';
         document.getElementById('rep-form-senha-conf').value = '';
         
+        mostrarEtapaReporte(1);
         document.getElementById('modal-reportar-erro').style.display = 'flex';
     };
 
@@ -1717,8 +1792,8 @@ containerQuestao.innerHTML = `
         @keyframes piscarCardVermelho { 0%, 100% { background-color: #ffffff; border-color: #e2e8f0; } 50% { background-color: #fee2e2; border-color: #fca5a5; } }
        .card-tempo-estourado { animation: piscarCardVermelho 0.8s infinite; }
 .modal-aluno-content, .modal-aluno-content * { box-sizing: border-box; }
-        .abas-graficos { display: flex; gap: 4px; margin-bottom: 18px; background: #e2e8f0; padding: 5px; border-radius: 12px; width: 100%; box-sizing: border-box; }
-        .aba-graf-btn { flex: 1; min-width: 0; border: none; background: transparent; padding: 10px 4px; border-radius: 9px; font-size: 11px; font-weight: 800; color: #64748b; cursor: pointer; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }        .aba-graf-btn.ativa { background: #fff; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+        .abas-graficos { display: flex; gap: 4px; margin-bottom: 18px; background: #e2e8f0; padding: 4px; border-radius: 12px; width: 100%; box-sizing: border-box; }
+        .aba-graf-btn { flex: 1 1 auto; border: none; background: transparent; padding: 10px 4px; border-radius: 9px; font-size: 10px; font-weight: 800; color: #64748b; cursor: pointer; transition: 0.2s; white-space: nowrap; letter-spacing: -0.2px; }
         .filtros-periodo { display: flex; gap: 8px; margin-bottom: 18px; }
         .btn-periodo { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 12px; font-weight: 700; color: #475569; cursor: pointer; }
         .btn-periodo.ativo-verde { background: #10b981; color: #fff; border-color: #10b981; }
@@ -1885,63 +1960,97 @@ containerQuestao.innerHTML = `
 
         <!-- MODAL REPORTAR ERRO -->
         <div id="modal-reportar-erro" class="modal-aluno">
-            <div class="modal-aluno-content" style="max-height: 90vh; overflow-y: auto; padding: 25px;">
-                <div style="font-size: 35px; color: #ef4444; margin-bottom: 10px;"><i class="fa-solid fa-file-signature"></i></div>
-                <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900;">Abertura de Chamado</h3>
-                <p style="color:#64748b; font-size: 13px; margin-bottom:15px;">Para solicitar a revisão técnica de uma questão, preencha o formulário obrigatório abaixo.</p>
-                
-                <div style="text-align: left; margin-bottom: 15px;">
-                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">1. Qual o erro principal?</label>
-                    <select id="rep-q1" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none;">
+            <div class="modal-aluno-content">
+                <div style="font-size: 36px; color: #ef4444; margin-bottom: 10px;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900; margin-bottom: 4px;">Reportar Questão</h3>
+                <p id="rep-indicador-etapa" style="color:#64748b; font-size: 12px; font-weight: 700; margin-bottom: 18px;">Etapa 1 de 7</p>
+
+                <div id="rep-step-1">
+                    <p style="color:#0f172a; font-size: 14px; font-weight: 700; margin-bottom: 12px;">1. Qual o erro principal?</p>
+                    <select id="rep-q1" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; margin-bottom: 18px; outline: none; background: #fff;">
                         <option value="" disabled selected>Selecione...</option>
                         <option value="Gabarito Incorreto">Gabarito Incorreto</option>
                         <option value="Questão Desatualizada">Questão Desatualizada / Revogada</option>
                         <option value="Erro de Digitação/Formatação">Erro de Digitação/Formatação</option>
                         <option value="Múltiplas Corretas / Nenhuma Correta">Múltiplas Corretas / Nenhuma Correta</option>
                     </select>
+                    <div style="display:flex; flex-direction: column; gap:10px;">
+                        <button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.avancarEtapaReporte(2)">PRÓXIMO</button>
+                        <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="this.closest('.modal-aluno').style.display='none'">CANCELAR</button>
+                    </div>
+                </div>
 
-                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">2. O enunciado está claro?</label>
-                    <select id="rep-q2" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none;">
+                <div id="rep-step-2" style="display:none;">
+                    <p style="color:#0f172a; font-size: 14px; font-weight: 700; margin-bottom: 12px;">2. O enunciado está claro?</p>
+                    <select id="rep-q2" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; margin-bottom: 18px; outline: none; background: #fff;">
                         <option value="" disabled selected>Selecione...</option>
                         <option value="Sim">Sim, perfeitamente.</option>
                         <option value="Não">Não, está ambíguo ou incompleto.</option>
                     </select>
+                    <div style="display:flex; flex-direction: column; gap:10px;">
+                        <button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.avancarEtapaReporte(3)">PRÓXIMO</button>
+                        <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="window.voltarEtapaReporte(1)">VOLTAR</button>
+                    </div>
+                </div>
 
-                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">3. As alternativas estão condizentes?</label>
-                    <select id="rep-q3" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none;">
+                <div id="rep-step-3" style="display:none;">
+                    <p style="color:#0f172a; font-size: 14px; font-weight: 700; margin-bottom: 12px;">3. As alternativas estão condizentes?</p>
+                    <select id="rep-q3" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; margin-bottom: 18px; outline: none; background: #fff;">
                         <option value="" disabled selected>Selecione...</option>
                         <option value="Sim">Sim, fazem sentido.</option>
                         <option value="Não">Não, fogem totalmente do tema.</option>
                     </select>
+                    <div style="display:flex; flex-direction: column; gap:10px;">
+                        <button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.avancarEtapaReporte(4)">PRÓXIMO</button>
+                        <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="window.voltarEtapaReporte(2)">VOLTAR</button>
+                    </div>
+                </div>
 
-                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">4. Você verificou a legislação/fonte?</label>
-                    <select id="rep-q4" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none;">
+                <div id="rep-step-4" style="display:none;">
+                    <p style="color:#0f172a; font-size: 14px; font-weight: 700; margin-bottom: 12px;">4. Você verificou a legislação/fonte?</p>
+                    <select id="rep-q4" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; margin-bottom: 18px; outline: none; background: #fff;">
                         <option value="" disabled selected>Selecione...</option>
                         <option value="Sim">Sim, conferi antes de reportar.</option>
                         <option value="Não">Não, apenas desconfio do erro.</option>
                     </select>
-                    
-                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Descreva o erro de forma clara e curta:</label>
-                    <textarea id="rep-form-desc" rows="2" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 12px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; outline: none; resize: none;"></textarea>
-
-                    <label style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 5px; display: block;">Identificação Obrigatória:</label>
-                    <input type="text" id="rep-form-nome" placeholder="Nome Completo" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 8px; outline: none;">
-                    <input type="email" id="rep-form-email" placeholder="E-mail de Contato" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 8px; outline: none;">
-                    <input type="tel" id="rep-form-tel" placeholder="Telefone com DDD" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 15px; outline: none;">
-
-                    <div style="background:#f8fafc; padding:15px; border-radius:10px; border:2px dashed #ef4444; margin-bottom:15px; text-align:center;">
-                        <span style="font-size: 11px; font-weight: 800; color: #ef4444; display: block; margin-bottom: 5px; text-transform: uppercase;">CÓDIGO DE SEGURANÇA</span>
-                        <div id="senha-mostrada-captcha" style="font-size: 24px; font-family: monospace; font-weight: 900; color: #0f172a; letter-spacing: 5px; margin-bottom: 10px;"></div>
-                        <p style="font-size: 11px; color: #64748b; margin-bottom: 0;">Copie o código exato acima para validar o envio.</p>
+                    <div style="display:flex; flex-direction: column; gap:10px;">
+                        <button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.avancarEtapaReporte(5)">PRÓXIMO</button>
+                        <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="window.voltarEtapaReporte(3)">VOLTAR</button>
                     </div>
-
-                    <input type="text" id="rep-form-senha" placeholder="Digite o código de segurança..." autocomplete="off" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 8px; outline: none; font-weight:bold; text-align:center;">
-                    <input type="text" id="rep-form-senha-conf" placeholder="Confirme o código de segurança..." autocomplete="off" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 12px; outline: none; font-weight:bold; text-align:center;">
                 </div>
 
-                <div style="display:flex; flex-direction: column; gap:10px;">
-                    <button class="btn-modal-aluno" style="background:#0f172a; margin-top:0;" onclick="window.enviarReporte()">ENVIAR CHAMADO TÉCNICO</button>
-                    <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="this.closest('.modal-aluno').style.display='none'">CANCELAR</button>
+                <div id="rep-step-5" style="display:none;">
+                    <p style="color:#0f172a; font-size: 14px; font-weight: 700; margin-bottom: 12px;">Descreva o erro de forma clara e curta:</p>
+                    <textarea id="rep-form-desc" rows="3" autocomplete="off" placeholder="Explique brevemente o que encontrou..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 18px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; outline: none; resize: none;"></textarea>
+                    <div style="display:flex; flex-direction: column; gap:10px;">
+                        <button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.avancarEtapaReporte(6)">PRÓXIMO</button>
+                        <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="window.voltarEtapaReporte(4)">VOLTAR</button>
+                    </div>
+                </div>
+
+                <div id="rep-step-6" style="display:none;">
+                    <p style="color:#0f172a; font-size: 14px; font-weight: 700; margin-bottom: 12px;">Identificação Obrigatória:</p>
+                    <input type="text" id="rep-form-nome" placeholder="Nome Completo" autocomplete="off" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 10px; outline: none;">
+                    <input type="email" id="rep-form-email" placeholder="E-mail de Contato" autocomplete="off" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 10px; outline: none;">
+                    <input type="tel" id="rep-form-tel" placeholder="Telefone com DDD" autocomplete="off" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 18px; outline: none;">
+                    <div style="display:flex; flex-direction: column; gap:10px;">
+                        <button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.avancarEtapaReporte(7)">PRÓXIMO</button>
+                        <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="window.voltarEtapaReporte(5)">VOLTAR</button>
+                    </div>
+                </div>
+
+                <div id="rep-step-7" style="display:none;">
+                    <div style="background:#f8fafc; padding:12px; border-radius:12px; border:2px dashed #ef4444; margin-bottom:14px; text-align:center; user-select:none; -webkit-user-select:none;" oncontextmenu="return false;">
+                        <span style="font-size: 11px; font-weight: 800; color: #ef4444; display: block; margin-bottom: 6px; text-transform: uppercase;">CÓDIGO DE SEGURANÇA</span>
+                        <canvas id="canvas-captcha-rep" width="240" height="44" style="display:block; margin:0 auto; border-radius:6px; pointer-events:none;"></canvas>
+                        <p style="font-size: 11px; color: #64748b; margin: 6px 0 0 0;">Digite o código exato acima (respeitando maiúsculas e minúsculas).</p>
+                    </div>
+                    <input type="text" id="rep-form-senha" placeholder="Digite o código de segurança..." autocomplete="off" onpaste="return false;" ondrop="return false;" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 10px; outline: none; font-weight:bold; text-align:center;">
+                    <input type="text" id="rep-form-senha-conf" placeholder="Confirme o código de segurança..." autocomplete="off" onpaste="return false;" ondrop="return false;" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; margin-bottom: 18px; outline: none; font-weight:bold; text-align:center;">
+                    <div style="display:flex; flex-direction: column; gap:10px;">
+                        <button class="btn-modal-aluno" style="background:#0f172a; margin-top:0;" onclick="window.enviarReporte()">ENVIAR CHAMADO TÉCNICO</button>
+                        <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="window.voltarEtapaReporte(6)">VOLTAR</button>
+                    </div>
                 </div>
             </div>
         </div>
