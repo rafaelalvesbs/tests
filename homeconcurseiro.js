@@ -1795,7 +1795,8 @@ containerQuestao.innerHTML = `
         .abas-graficos { display: flex; gap: 8px; margin-bottom: 18px; width: 100%; box-sizing: border-box; }
         .aba-graf-btn { flex: 1; padding: 10px 4px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 11px; font-weight: 700; color: #475569; cursor: pointer; white-space: nowrap; transition: 0.2s; }
         .aba-graf-btn.ativa { background: #0f172a; color: #fff; border-color: #0f172a; }
-        .btn-periodo { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 12px; font-weight: 700; color: #475569; cursor: pointer; }
+        .filtros-periodo { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 24px; width: 100%; box-sizing: border-box; }
+        .btn-periodo { flex: 1; max-width: 110px; padding: 8px 6px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 12px; font-weight: 700; color: #475569; cursor: pointer; text-align: center; }
         .btn-periodo.ativo-verde { background: #10b981; color: #fff; border-color: #10b981; }
         .btn-periodo.ativo-vermelho { background: #ef4444; color: #fff; border-color: #ef4444; }
         .resumo-tempo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
