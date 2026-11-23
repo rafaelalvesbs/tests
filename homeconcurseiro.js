@@ -1418,9 +1418,21 @@ containerQuestao.innerHTML = `
 
             containerLista.innerHTML = `
                 <div class="abas-graficos">
-                    <button class="aba-graf-btn ativa" data-aba="aproveitamento" onclick="window.trocarAbaGraficos('aproveitamento')">Aproveitamento</button>
-                    <button class="aba-graf-btn" data-aba="cronometro" onclick="window.trocarAbaGraficos('cronometro')">Cronômetro</button>
-                    <button class="aba-graf-btn" data-aba="temporizador" onclick="window.trocarAbaGraficos('temporizador')">Temporizador</button>
+                    <button class="aba-graf-btn ativa" data-aba="aproveitamento" onclick="window.trocarAbaGraficos('aproveitamento')">
+                        <div class="aba-graf-icone" style="background:#eff6ff; color:#3b82f6;"><i class="fa-solid fa-chart-pie"></i></div>
+                        <span class="aba-graf-titulo">Aproveitamento</span>
+                        <span class="aba-graf-acao">Abrir <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i></span>
+                    </button>
+                    <button class="aba-graf-btn" data-aba="cronometro" onclick="window.trocarAbaGraficos('cronometro')">
+                        <div class="aba-graf-icone" style="background:#ecfdf5; color:#10b981;"><i class="fa-solid fa-stopwatch"></i></div>
+                        <span class="aba-graf-titulo">Cronômetro</span>
+                        <span class="aba-graf-acao">Abrir <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i></span>
+                    </button>
+                    <button class="aba-graf-btn" data-aba="temporizador" onclick="window.trocarAbaGraficos('temporizador')">
+                        <div class="aba-graf-icone" style="background:#fef2f2; color:#ef4444;"><i class="fa-solid fa-hourglass-half"></i></div>
+                        <span class="aba-graf-titulo">Temporizador</span>
+                        <span class="aba-graf-acao">Abrir <i class="fa-solid fa-chevron-right" style="font-size:8px;"></i></span>
+                    </button>
                 </div>
                 <div id="area-aba-graficos"></div>
             `;
@@ -1792,9 +1804,14 @@ containerQuestao.innerHTML = `
         @keyframes piscarCardVermelho { 0%, 100% { background-color: #ffffff; border-color: #e2e8f0; } 50% { background-color: #fee2e2; border-color: #fca5a5; } }
        .card-tempo-estourado { animation: piscarCardVermelho 0.8s infinite; }
 .modal-aluno-content, .modal-aluno-content * { box-sizing: border-box; }
-        .abas-graficos { display: flex; gap: 4px; margin-bottom: 18px; background: #e2e8f0; padding: 4px; border-radius: 12px; width: 100%; box-sizing: border-box; }
-        .aba-graf-btn { flex: 1 1 auto; border: none; background: transparent; padding: 10px 4px; border-radius: 9px; font-size: 10px; font-weight: 800; color: #64748b; cursor: pointer; transition: 0.2s; white-space: nowrap; letter-spacing: -0.2px; }
-        .filtros-periodo { display: flex; gap: 8px; margin-bottom: 18px; }
+        .abas-graficos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; width: 100%; box-sizing: border-box; }
+        .aba-graf-btn { background: #fff; border: 2px solid #e2e8f0; border-radius: 14px; padding: 12px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: 0.2s; box-shadow: 0 3px 8px rgba(0,0,0,0.04); min-width: 0; }
+        .aba-graf-btn:hover { border-color: #94a3b8; transform: translateY(-2px); }
+        .aba-graf-btn.ativa { border-color: #0f172a; background: #f8fafc; box-shadow: 0 6px 14px rgba(15,23,42,0.1); transform: translateY(-2px); }
+        .aba-graf-icone { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .aba-graf-titulo { font-size: 10px; font-weight: 800; color: #0f172a; white-space: nowrap; letter-spacing: -0.2px; }
+        .aba-graf-acao { font-size: 9px; font-weight: 700; color: #64748b; display: flex; align-items: center; gap: 3px; }
+        .aba-graf-btn.ativa .aba-graf-acao { color: #0f172a; }
         .btn-periodo { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 12px; font-weight: 700; color: #475569; cursor: pointer; }
         .btn-periodo.ativo-verde { background: #10b981; color: #fff; border-color: #10b981; }
         .btn-periodo.ativo-vermelho { background: #ef4444; color: #fff; border-color: #ef4444; }
@@ -1959,7 +1976,7 @@ containerQuestao.innerHTML = `
         </div>
 
         <!-- MODAL REPORTAR ERRO -->
-        <div id="modal-reportar-erro" class="modal-aluno">
+        <div id="modal-reportar-erro" class="modal-aluno" onclick="if(event.target === this) this.style.display='none'">
             <div class="modal-aluno-content">
                 <div style="font-size: 36px; color: #ef4444; margin-bottom: 10px;"><i class="fa-solid fa-triangle-exclamation"></i></div>
                 <h3 style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900; margin-bottom: 4px;">Reportar Questão</h3>
