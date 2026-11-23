@@ -991,6 +991,8 @@ window.Router.register('homeconcurseiro', async () => {
             const discCorreta = questaoAtual.originalData ? questaoAtual.originalData.disciplina : (questaoAtual.disciplina || disciplinaSelecionada);
             await setDoc(doc(db, "reportes_questoes", reportId), {
                 usuarioId: userAtual.uid,
+                emailUsuario: userAtual.email || email,
+                nomeUsuario: nome || nomeCompleto,
                 questaoId: questaoAtual.idQ,
                 concursoId: dadosConcurso.id,
                 disciplina: discCorreta,
