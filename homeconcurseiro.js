@@ -800,15 +800,31 @@ window.Router.register('homeconcurseiro', async () => {
         const favCacheKey = `p4f_favs_${userAtual.uid}_${dadosConcurso.id}`;
         let globFavs = JSON.parse(localStorage.getItem(favCacheKey) || '{}');
 
+        const modalFav = document.getElementById('modal-favorito-aluno');
+        const iconeFav = document.getElementById('fav-modal-icone');
+        const tituloFav = document.getElementById('fav-modal-titulo');
+        const textoFav = document.getElementById('fav-modal-texto');
+        const btnFavModal = document.getElementById('fav-modal-btn');
+
         if (progressoUsuario.favoritas[idQ]) {
             delete progressoUsuario.favoritas[idQ];
             delete globFavs[idQ];
             document.getElementById('btn-fav-q').style.color = '#64748b';
+            iconeFav.style.color = '#64748b';
+            tituloFav.innerText = 'Removida das Favoritas';
+            textoFav.innerText = 'Esta questão foi retirada da sua lista de questões favoritas.';
+            btnFavModal.style.background = '#0f172a';
+            modalFav.style.display = 'flex';
         } else {
             progressoUsuario.favoritas[idQ] = true;
             globFavs[idQ] = true;
             document.getElementById('btn-fav-q').style.color = '#eab308';
             localStorage.removeItem(`p4f_ja_abriu_favs_${userAtual.uid}`);
+            iconeFav.style.color = '#eab308';
+            tituloFav.innerText = 'Questão Favoritada';
+            textoFav.innerText = 'Esta questão foi salva na sua lista de questões favoritas. Você pode acessá-la a qualquer momento na tela de disciplinas.';
+            btnFavModal.style.background = '#eab308';
+            modalFav.style.display = 'flex';
         }
         
         const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`;
@@ -1876,8 +1892,20 @@ containerQuestao.innerHTML = `
                 <p style="color:#64748b; font-size: 13px; margin-bottom:15px;">Escolha uma disciplina específica ou misture todas.</p>
                 <select id="select-filtro-disciplina" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #cbd5e1; margin-bottom: 20px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 600; outline: none;"></select>
                 <div style="display:flex; flex-direction: column; gap:10px;">
-                    <button class="btn-modal-aluno" style="background:#3b82f6; margin-top:0;" onclick="window.iniciarFiltroPorDisciplina()">FILTRAR QUESTÕES</button>
+                    <button class="btn-modal-aluno" style="background:#ef4444; margin-top:0;" onclick="window.confirmarTemporizador()">OK, COMEÇAR</button>
                     <button class="btn-modal-aluno" style="background:#f1f5f9; color:#64748b; margin-top:0;" onclick="this.closest('.modal-aluno').style.display='none'">CANCELAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL FAVORITO -->
+        <div id="modal-favorito-aluno" class="modal-aluno" onclick="if(event.target === this) this.style.display='none'">
+            <div class="modal-aluno-content">
+                <div id="fav-modal-icone" style="font-size: 36px; color: #eab308; margin-bottom: 10px;"><i class="fa-solid fa-star"></i></div>
+                <h3 id="fav-modal-titulo" style="color:#0f172a; margin-top:0; font-size: 20px; font-weight: 900; margin-bottom: 10px;"></h3>
+                <p id="fav-modal-texto" style="color:#64748b; font-size: 13px; margin-bottom: 18px; line-height: 1.4;"></p>
+                <div style="display:flex; flex-direction: column; gap:10px;">
+                    <button id="fav-modal-btn" class="btn-modal-aluno" style="background:#eab308; margin-top:0;" onclick="document.getElementById('modal-favorito-aluno').style.display='none'">OK</button>
                 </div>
             </div>
         </div>
