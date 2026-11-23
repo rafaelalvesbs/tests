@@ -46,11 +46,11 @@ window.Router.register('erros', async () => {
                         disciplina: r.disciplina || 'Desconhecida',
                         dataRecente: r.data || 0,
                         reportesIds: [r.id],
-                        usuariosDescricoes: [{ id: r.usuarioId || 'N/A', desc: r.descricao || 'Sem descrição' }]
+                        usuariosDescricoes: [{ id: r.usuarioId || 'N/A', email: r.emailUsuario || '', nome: r.nomeUsuario || '', desc: r.descricao || 'Sem descrição' }]
                     };
                 } else {
                     agrupados[qId].reportesIds.push(r.id);
-                    agrupados[qId].usuariosDescricoes.push({ id: r.usuarioId || 'N/A', desc: r.descricao || 'Sem descrição' });
+                    agrupados[qId].usuariosDescricoes.push({ id: r.usuarioId || 'N/A', email: r.emailUsuario || '', nome: r.nomeUsuario || '', desc: r.descricao || 'Sem descrição' });
                     if(r.data && r.data > agrupados[qId].dataRecente) agrupados[qId].dataRecente = r.data;
                 }
             });
@@ -207,7 +207,7 @@ window.Router.register('erros', async () => {
 
             const promessasFeed = env.agrupamento.usuariosDescricoes.map(async (u) => {
                 const feedbackId = `${u.id}_${Date.now()}_${Math.floor(Math.random()*1000)}`;
-                return setDoc(doc(collection(db, "feedbacks_questoes"), feedbackId), {
+                await setDoc(doc(collection(db, "feedbacks_questoes"), feedbackId), {
                     usuarioId: u.id,
                     questaoId: env.agrupamento.questaoId,
                     disciplina: env.agrupamento.disciplina,
@@ -216,6 +216,37 @@ window.Router.register('erros', async () => {
                     lido: false,
                     data: Date.now()
                 });
+
+                let emailDestino = u.email;
+                let nomeDestino = u.nome || 'Concurseiro';
+
+                if (!emailDestino && u.id && u.id !== 'N/A') {
+                    const docUser = await getDoc(doc(db, "usuarios", u.id));
+                    if (docUser.exists()) {
+                        emailDestino = docUser.data().email || '';
+                        nomeDestino = docUser.data().nome || nomeDestino;
+                    }
+                }
+
+                if (emailDestino) {
+                    const emailId = `mail_${u.id}_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+                    await setDoc(doc(collection(db, "mail"), emailId), {
+                        to: emailDestino,
+                        message: {
+                            subject: `Atualização sobre a questão reportada (${env.agrupamento.disciplina})`,
+                            html: `
+                                <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 560px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+                                    <h2 style="color: #0f172a; margin-top: 0;">Olá, ${nomeDestino}!</h2>
+                                    <p style="font-size: 14px; line-height: 1.6;">A questão de <strong>${env.agrupamento.disciplina}</strong> que você reportou foi analisada pela nossa equipe.</p>
+                                    <div style="background: #f8fafc; padding: 14px; border-left: 4px solid #10b981; border-radius: 6px; margin: 16px 0;">
+                                        <p style="margin: 0; font-size: 14px; color: #0f172a;"><strong>O que aconteceu:</strong><br>${resposta.replace(/\n/g, '<br>')}</p>
+                                    </div>
+                                    <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">Obrigado por ajudar a manter o banco de questões atualizado. Bons estudos!</p>
+                                </div>
+                            `
+                        }
+                    });
+                }
             });
             await Promise.all(promessasFeed);
 
