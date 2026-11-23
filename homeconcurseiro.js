@@ -1324,7 +1324,12 @@ containerQuestao.innerHTML = `
                     const inicioFiltro = (disciplinasAtuais.includes(disciplinaSelecionada)) ? disciplinaSelecionada : 'TODAS';
                     window.renderizarGraficoFiltrado(inicioFiltro);
                 } else {
+                    const textoAviso = aba === 'cronometro'
+                        ? 'Estes dados computam todas as questões respondidas com o cronômetro ativado em todas as disciplinas deste concurso.'
+                        : 'Estes dados computam todas as questões respondidas com o temporizador ativado em todas as disciplinas deste concurso.';
+
                     areaAba.innerHTML = `
+                        <p style="font-size: 12px; color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; line-height: 1.4;">${textoAviso}</p>
                         <div class="filtros-periodo">
                             <button class="btn-periodo" data-periodo="diario" onclick="window.renderizarGraficoTempo('${aba}', 'diario')">Diário</button>
                             <button class="btn-periodo" data-periodo="semanal" onclick="window.renderizarGraficoTempo('${aba}', 'semanal')">Semanal</button>
@@ -1711,9 +1716,9 @@ containerQuestao.innerHTML = `
         .tempo-estourado { animation: piscarAlerta 0.8s infinite; }
         @keyframes piscarCardVermelho { 0%, 100% { background-color: #ffffff; border-color: #e2e8f0; } 50% { background-color: #fee2e2; border-color: #fca5a5; } }
        .card-tempo-estourado { animation: piscarCardVermelho 0.8s infinite; }
-        .abas-graficos { display: flex; gap: 6px; margin-bottom: 18px; background: #e2e8f0; padding: 5px; border-radius: 12px; }
-        .aba-graf-btn { flex: 1; border: none; background: transparent; padding: 10px 6px; border-radius: 9px; font-size: 12px; font-weight: 800; color: #64748b; cursor: pointer; transition: 0.2s; }
-        .aba-graf-btn.ativa { background: #fff; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+.modal-aluno-content, .modal-aluno-content * { box-sizing: border-box; }
+        .abas-graficos { display: flex; gap: 4px; margin-bottom: 18px; background: #e2e8f0; padding: 5px; border-radius: 12px; width: 100%; box-sizing: border-box; }
+        .aba-graf-btn { flex: 1; min-width: 0; border: none; background: transparent; padding: 10px 4px; border-radius: 9px; font-size: 11px; font-weight: 800; color: #64748b; cursor: pointer; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }        .aba-graf-btn.ativa { background: #fff; color: #0f172a; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
         .filtros-periodo { display: flex; gap: 8px; margin-bottom: 18px; }
         .btn-periodo { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; font-size: 12px; font-weight: 700; color: #475569; cursor: pointer; }
         .btn-periodo.ativo-verde { background: #10b981; color: #fff; border-color: #10b981; }
