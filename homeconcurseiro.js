@@ -181,7 +181,7 @@ window.Router.register('homeconcurseiro', async () => {
                 if (cargoSelecionado) {
                     window.filtrarDisciplinasPeloCargo();
                     if (badgeCargo && cargosDisponiveis[cargoSelecionado]) {
-                        badgeCargo.innerHTML = `<i class="fa-solid fa-user-tie" style="margin-right: 8px;"></i>Cargo: ${cargosDisponiveis[cargoSelecionado]}`;
+                        badgeCargo.innerHTML = `<i class="fa-solid fa-user-tie" style="margin-right: 8px;"></i>${cargosDisponiveis[cargoSelecionado]}`;
                         badgeCargo.style.cssText = "display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); padding: 12px 20px; border-radius: 12px; margin-bottom: 25px; font-size: 15px; font-weight: 700; color: #38bdf8; border: 1px solid rgba(56,189,248,0.2); width: fit-content; margin-left: auto; margin-right: auto; gap: 8px;";
                     } else if (badgeCargo) {
                         badgeCargo.style.display = 'none';
@@ -437,8 +437,10 @@ window.Router.register('homeconcurseiro', async () => {
         }
     };
 
-    window.abrirQuestoesDisciplina = async (disciplina) => {
+   window.abrirQuestoesDisciplina = async (disciplina) => {
         disciplinaSelecionada = disciplina;
+        document.getElementById('area-resolucao').style.display = 'none';
+        document.getElementById('fim-disciplina').style.display = 'none';
         document.getElementById('loader-questoes').style.display = 'flex';
         window.irParaView('view-questoes');
 
@@ -521,8 +523,10 @@ window.Router.register('homeconcurseiro', async () => {
         }
     };
 
-    window.abrirTodasQuestoesMisturadas = async () => {
+   window.abrirTodasQuestoesMisturadas = async () => {
         disciplinaSelecionada = "MISTURADO";
+        document.getElementById('area-resolucao').style.display = 'none';
+        document.getElementById('fim-disciplina').style.display = 'none';
         document.getElementById('loader-questoes').style.display = 'flex';
         window.irParaView('view-questoes');
 
@@ -603,6 +607,8 @@ window.Router.register('homeconcurseiro', async () => {
             return;
         }
 
+        document.getElementById('area-resolucao').style.display = 'none';
+        document.getElementById('fim-disciplina').style.display = 'none';
         document.getElementById('loader-questoes').style.display = 'flex';
         window.irParaView('view-questoes');
 
@@ -1637,23 +1643,35 @@ containerQuestao.innerHTML = `
         carregarProximaQuestao();
     };
 
-    // Lógica de Swipe no Mobile
     let touchstartX = 0;
+    let touchstartY = 0;
     let touchendX = 0;
+    let arrastandoQuestao = false;
+
     const checkSwipe = () => {
-        if (touchendX < touchstartX - 50 && questaoRespondidaAgora) {
-            const container = document.getElementById('render-questao-aqui');
+        const container = document.getElementById('render-questao-aqui');
+        const diffX = touchendX - touchstartX;
+
+        if (diffX < -60 && questaoRespondidaAgora) {
             if (window.innerWidth < 769 && container) {
                 tocarSom('pagina');
-                container.style.animation = 'pageSwipeOut 0.35s forwards ease-in';
+                container.style.transition = 'transform 0.25s ease-in, opacity 0.25s ease-in';
+                container.style.transform = 'translateX(-100%)';
+                container.style.opacity = '0';
                 setTimeout(() => {
+                    container.style.transition = 'none';
+                    container.style.transform = 'translateX(0)';
+                    container.style.opacity = '1';
                     window.avancarPosResposta();
-                    container.style.animation = 'pageSwipeIn 0.35s forwards ease-out';
-                    setTimeout(() => { container.style.animation = ''; }, 350);
-                }, 300);
+                    container.style.animation = 'pageSwipeIn 0.3s forwards ease-out';
+                    setTimeout(() => { container.style.animation = ''; }, 300);
+                }, 250);
             } else {
                 window.avancarPosResposta();
             }
+        } else if (container) {
+            container.style.transition = 'transform 0.25s ease-out';
+            container.style.transform = 'translateX(0)';
         }
     };
 
@@ -1705,19 +1723,49 @@ containerQuestao.innerHTML = `
         }
     };
 
-    setTimeout(() => {
+    clearTimeout(window.timerInicioConcurseiro);
+    window.timerInicioConcurseiro = setTimeout(() => {
+        if (!document.getElementById('btn-iniciar-jornada')) return;
         buscarDadosIniciais();
         
-        // Listener de Swipe
         const areaRes = document.getElementById('area-resolucao');
         if(areaRes) {
-            areaRes.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
-            areaRes.addEventListener('touchend', e => { 
-                touchendX = e.changedTouches[0].screenX; 
-                checkSwipe(); 
+            areaRes.addEventListener('touchstart', e => {
+                touchstartX = e.changedTouches[0].screenX;
+                touchstartY = e.changedTouches[0].screenY;
+                arrastandoQuestao = false;
+                const container = document.getElementById('render-questao-aqui');
+                if (container) {
+                    container.style.transition = 'none';
+                }
+            }, {passive: true});
+
+            areaRes.addEventListener('touchmove', e => {
+                if (window.innerWidth >= 769) return;
+                const moveX = e.changedTouches[0].screenX - touchstartX;
+                const moveY = e.changedTouches[0].screenY - touchstartY;
+
+                if (!arrastandoQuestao && Math.abs(moveX) > Math.abs(moveY) && Math.abs(moveX) > 10) {
+                    arrastandoQuestao = true;
+                }
+
+                if (arrastandoQuestao) {
+                    const container = document.getElementById('render-questao-aqui');
+                    if (container) {
+                        container.style.transform = `translateX(${moveX}px)`;
+                    }
+                }
+            }, {passive: true});
+
+            areaRes.addEventListener('touchend', e => {
+                touchendX = e.changedTouches[0].screenX;
+                if (arrastandoQuestao) {
+                    checkSwipe();
+                }
+                arrastandoQuestao = false;
             }, {passive: true});
         }
-    }, 0);
+    }, 150);
 
     return `
     <style>
@@ -2085,13 +2133,10 @@ containerQuestao.innerHTML = `
         <!-- VIEW 2: MEU CONCURSO -->
         <div id="view-concurso" class="view-concurseiro">
             <button onclick="window.irParaView('view-boas-vindas')" style="background:none; border:none; color:#64748b; font-weight:700; margin-bottom:20px; cursor:pointer; font-size:14px;"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
-            <h2 style="color: #0f172a; font-weight: 900; margin-bottom: 5px;">Seu Concurso</h2>
-            <p style="color: #64748b; font-size: 13px; margin-bottom: 25px;">Toque no card para selecionar seu cargo e ver as disciplinas.</p>
             
             <div class="card-concurso-select" onclick="window.verificarCargo()">
                 <div class="cc-icon"><i class="fa-solid fa-building-columns"></i></div>
                 <div class="cc-title" id="card-concurso-nome">Carregando...</div>
-                <div class="cc-subtitle">Clique para acessar os cargos e questões</div>
             </div>
         </div>
 
