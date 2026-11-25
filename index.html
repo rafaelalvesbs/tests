@@ -179,13 +179,13 @@ const menu = document.getElementById('main-menu');
     atualizarData();
   };
 
-  // MENU DO CONCURSEIRO
+  // MENU QUESTÕES
   window.renderMenuConcurseiro = () => {
     document.body.classList.remove('is-master');
     const sideInfo = document.getElementById('sidebar-logo-text');
-    sideInfo.innerHTML = `Concurseiro <div id="data-atual-sidebar" class="data-atual"></div>`;
+    sideInfo.innerHTML = `Questões <div id="data-atual-sidebar" class="data-atual"></div>`;
     
-    document.getElementById('mobile-logo-text').innerText = 'Concurseiro';
+    document.getElementById('mobile-logo-text').innerText = 'Questões';
     const ulMenu = document.getElementById('main-menu');
     ulMenu.innerHTML = `
         <li class="menu-item"><a href="#" onclick="handleNav('homeconcurseiro')"><i class="fa-solid fa-house"></i> Início</a></li>
