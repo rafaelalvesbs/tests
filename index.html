@@ -234,6 +234,9 @@ const menu = document.getElementById('main-menu');
   window.Router = Router;
   
   window.handleNav = (id) => { 
+    if (window.event && window.event.preventDefault) {
+      window.event.preventDefault();
+    }
     if (window.location.hash !== '#' + id) {
       window.location.hash = id;
     } else {
