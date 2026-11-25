@@ -1656,11 +1656,11 @@ containerQuestao.innerHTML = `
             if (window.innerWidth < 769 && container) {
                 tocarSom('pagina');
                 container.style.transition = 'transform 0.25s ease-in, opacity 0.25s ease-in';
-                container.style.transform = 'translateX(-100%)';
+                container.style.transform = 'translate(-100%, 0)';
                 container.style.opacity = '0';
                 setTimeout(() => {
                     container.style.transition = 'none';
-                    container.style.transform = 'translateX(0)';
+                    container.style.transform = 'translate(0, 0)';
                     container.style.opacity = '1';
                     window.avancarPosResposta();
                     container.style.animation = 'pageSwipeIn 0.3s forwards ease-out';
@@ -1671,7 +1671,7 @@ containerQuestao.innerHTML = `
             }
         } else if (container) {
             container.style.transition = 'transform 0.25s ease-out';
-            container.style.transform = 'translateX(0)';
+            container.style.transform = 'translate(0, 0)';
         }
     };
 
@@ -1728,37 +1728,36 @@ containerQuestao.innerHTML = `
         if (!document.getElementById('btn-iniciar-jornada')) return;
         buscarDadosIniciais();
         
-        const areaRes = document.getElementById('area-resolucao');
-        if(areaRes) {
-            areaRes.addEventListener('touchstart', e => {
-                touchstartX = e.changedTouches[0].screenX;
-                touchstartY = e.changedTouches[0].screenY;
+        const containerQ = document.getElementById('render-questao-aqui');
+        if(containerQ) {
+            containerQ.style.touchAction = 'none';
+
+            containerQ.addEventListener('touchstart', e => {
+                if (window.innerWidth >= 769) return;
+                touchstartX = e.changedTouches[0].clientX;
+                touchstartY = e.changedTouches[0].clientY;
                 arrastandoQuestao = false;
-                const container = document.getElementById('render-questao-aqui');
-                if (container) {
-                    container.style.transition = 'none';
-                }
+                containerQ.style.transition = 'none';
             }, {passive: true});
 
-            areaRes.addEventListener('touchmove', e => {
+            containerQ.addEventListener('touchmove', e => {
                 if (window.innerWidth >= 769) return;
-                const moveX = e.changedTouches[0].screenX - touchstartX;
-                const moveY = e.changedTouches[0].screenY - touchstartY;
+                const moveX = e.changedTouches[0].clientX - touchstartX;
+                const moveY = e.changedTouches[0].clientY - touchstartY;
 
-                if (!arrastandoQuestao && Math.abs(moveX) > Math.abs(moveY) && Math.abs(moveX) > 10) {
+                if (!arrastandoQuestao && (Math.abs(moveX) > 6 || Math.abs(moveY) > 6)) {
                     arrastandoQuestao = true;
                 }
 
                 if (arrastandoQuestao) {
-                    const container = document.getElementById('render-questao-aqui');
-                    if (container) {
-                        container.style.transform = `translateX(${moveX}px)`;
-                    }
+                    if (e.cancelable) e.preventDefault();
+                    containerQ.style.transform = `translate(${moveX}px, ${moveY}px)`;
                 }
-            }, {passive: true});
+            }, {passive: false});
 
-            areaRes.addEventListener('touchend', e => {
-                touchendX = e.changedTouches[0].screenX;
+            containerQ.addEventListener('touchend', e => {
+                if (window.innerWidth >= 769) return;
+                touchendX = e.changedTouches[0].clientX;
                 if (arrastandoQuestao) {
                     checkSwipe();
                 }
