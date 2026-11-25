@@ -29,11 +29,23 @@ window.Router.register('homeconcurseiro', async () => {
     let refazendoErros = false;
     let meusFeedbacks = [];
 
-    // Gerador de Som nativo (Web Audio API) para não depender de arquivos externos
+    const getAudioCtx = () => {
+        if (!window.audioCtxApp) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) window.audioCtxApp = new AudioCtx();
+        }
+        if (window.audioCtxApp && window.audioCtxApp.state === 'suspended') {
+            window.audioCtxApp.resume();
+        }
+        return window.audioCtxApp;
+    };
+
     const tocarSom = (tipo) => {
         if (somMutado) return;
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const ctx = getAudioCtx();
+            if (!ctx) return;
+
             const gain = ctx.createGain();
             gain.connect(ctx.destination);
             
