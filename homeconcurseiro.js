@@ -14,6 +14,7 @@ window.Router.register('homeconcurseiro', async () => {
     let questaoAtual = null;
     let progressoUsuario = { resolvidas: {}, acertos: 0, erros: 0, totalFeitas: 0 };
     let disciplinaSelecionada = "";
+    let chaveProgressoAtual = "";
     let somMutado = false;
     let questaoRespondidaAgora = false;
     let cargoSelecionado = null;
@@ -451,6 +452,7 @@ window.Router.register('homeconcurseiro', async () => {
 
    window.abrirQuestoesDisciplina = async (disciplina) => {
         disciplinaSelecionada = disciplina;
+        chaveProgressoAtual = disciplina;
         document.getElementById('area-resolucao').style.display = 'none';
         document.getElementById('fim-disciplina').style.display = 'none';
         document.getElementById('loader-questoes').style.display = 'flex';
@@ -535,8 +537,9 @@ window.Router.register('homeconcurseiro', async () => {
         }
     };
 
-   window.abrirTodasQuestoesMisturadas = async () => {
+window.abrirTodasQuestoesMisturadas = async () => {
         disciplinaSelecionada = "MISTURADO";
+        chaveProgressoAtual = "MISTURADO";
         document.getElementById('area-resolucao').style.display = 'none';
         document.getElementById('fim-disciplina').style.display = 'none';
         document.getElementById('loader-questoes').style.display = 'flex';
@@ -552,15 +555,14 @@ window.Router.register('homeconcurseiro', async () => {
                 }
             });
 
-            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_misturado`;
+            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${chaveProgressoAtual}`;
             const progressoSalvoLocal = localStorage.getItem(cacheProgKey);
             
             if (progressoSalvoLocal) {
                 progressoUsuario = JSON.parse(progressoSalvoLocal);
                 if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
             } else {
-                const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_misturado`));
-                if (docProgresso.exists()) {
+                const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${chaveProgressoAtual}`));                if (docProgresso.exists()) {
                     progressoUsuario = docProgresso.data();
                     if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
                 } else {
@@ -635,15 +637,16 @@ window.Router.register('homeconcurseiro', async () => {
                 }
             });
 
-            const safeAssuntoKey = assuntoEscolhido.replace(/[^a-zA-Z0-9]/g, '_');
-            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${safeAssuntoKey}`;
+           const safeAssuntoKey = assuntoEscolhido.replace(/[^a-zA-Z0-9]/g, '_');
+            chaveProgressoAtual = `${disciplinaSelecionada}_${safeAssuntoKey}`;
+            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${chaveProgressoAtual}`;
             const progressoSalvoLocal = localStorage.getItem(cacheProgKey);
             
             if (progressoSalvoLocal) {
                 progressoUsuario = JSON.parse(progressoSalvoLocal);
                 if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
             } else {
-                const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${safeAssuntoKey}`));
+                const docProgresso = await getDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${chaveProgressoAtual}`));
                 if (docProgresso.exists()) {
                     progressoUsuario = docProgresso.data();
                     if (!progressoUsuario.resolvidas) progressoUsuario.resolvidas = {};
@@ -1494,9 +1497,10 @@ containerQuestao.innerHTML = `
             progressoUsuario.totalFeitas--;
         });
         
-        const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`;
+        const chaveSalvar = chaveProgressoAtual || disciplinaSelecionada;
+        const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${chaveSalvar}`;
         localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
-        setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`), progressoUsuario, { merge: true });
+        setDoc(doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${chaveSalvar}`), progressoUsuario, { merge: true });
 
         atualizarPlacarEstatisticas();
         document.getElementById('loader-questoes').style.display = 'flex';
@@ -1637,12 +1641,12 @@ containerQuestao.innerHTML = `
 
         atualizarPlacarEstatisticas();
 
-        // Salva Progresso localmente e no Firebase em background
         try {
-            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`;
+            const chaveSalvar = chaveProgressoAtual || disciplinaSelecionada;
+            const cacheProgKey = `p4f_prog_${userAtual.uid}_${dadosConcurso.id}_${chaveSalvar}`;
             localStorage.setItem(cacheProgKey, JSON.stringify(progressoUsuario));
             
-            const refDoc = doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${disciplinaSelecionada}`);
+            const refDoc = doc(db, "progresso_concurseiro", `${userAtual.uid}_${dadosConcurso.id}_${chaveSalvar}`);
             setDoc(refDoc, progressoUsuario, { merge: true });
         } catch(e) {}
 
@@ -1840,10 +1844,10 @@ containerQuestao.innerHTML = `
         .seta-disc { color: #94a3b8; font-size: 11px; }
 
         /* VIEW 4: RESOLUÇÃO DE QUESTÃO */
-        .q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .q-tag-concurso { background: #0f172a; color: white; padding: 6px 12px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-        .q-progresso-badge { font-size: 12px; font-weight: 800; color: #64748b; background: #e2e8f0; padding: 6px 12px; border-radius: 8px; }
-        .relogio-badge { display: none; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; padding: 6px 12px; border-radius: 8px; margin-right: 8px; letter-spacing: 0.5px; }
+        .q-header { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; flex-wrap: nowrap; }
+        .q-tag-concurso { background: #0f172a; color: white; padding: 5px 8px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .q-progresso-badge { font-size: 11px; font-weight: 800; color: #64748b; background: #e2e8f0; padding: 5px 8px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; }
+        .relogio-badge { display: none; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; padding: 5px 8px; border-radius: 8px; letter-spacing: 0.3px; white-space: nowrap; flex-shrink: 0; }
         .relogio-verde { background: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; }
         .relogio-vermelho { background: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
        @keyframes piscarAlerta { 0%, 100% { background: #ef4444; color: #fff; } 50% { background: #fef2f2; color: #ef4444; } }
@@ -2199,9 +2203,9 @@ containerQuestao.innerHTML = `
 
             <div id="area-resolucao" style="display:none;">
                 <div class="q-header">
-                    <button onclick="window.abrirDisciplinas()" style="background:none; border:none; color:#64748b; font-weight:700; cursor:pointer; font-size:14px; margin-right: 15px;"><i class="fa-solid fa-arrow-left"></i></button>
+                    <button onclick="window.abrirDisciplinas()" style="background:none; border:none; color:#64748b; font-weight:700; cursor:pointer; font-size:14px; padding: 4px 6px 4px 0; flex-shrink: 0;"><i class="fa-solid fa-arrow-left"></i></button>
                     <div class="q-tag-concurso" id="q-concurso-nome">PF 2026</div>
-                    <div style="flex:1;"></div>
+                    <div style="flex:1; min-width: 2px;"></div>
                     <div id="display-timer" class="relogio-badge"><i class="fa-solid fa-clock"></i> <span id="texto-timer">00:00</span></div>
                     <div class="q-progresso-badge" id="q-progresso">1 / 100</div>
                 </div>
